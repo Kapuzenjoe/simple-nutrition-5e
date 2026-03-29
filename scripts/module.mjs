@@ -1,3 +1,4 @@
-import { initNutrition } from "./handler.mjs";
-
-Hooks.once("init", initNutrition);
+Hooks.once("init", async () => {
+  const { initNutrition } = await import("./handler.mjs");
+  initNutrition();
+});

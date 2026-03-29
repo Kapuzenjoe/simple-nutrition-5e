@@ -2,7 +2,7 @@
  * @import { NutritionCandidate, NutritionType } from "./types/shared.types.mjs";
  */
 
-import { convertWeight, formatWeight } from "/systems/dnd5e/module/utils.mjs";
+const { convertWeight, formatWeight } = game.dnd5e.utils;
 
 const FOOD_NEEDS = { tiny: 0.25, sm: 1, med: 1, lg: 4, huge: 16, grg: 64 };
 const WATER_NEEDS = { tiny: 0.25, sm: 1, med: 1, lg: 4, huge: 16, grg: 64 };

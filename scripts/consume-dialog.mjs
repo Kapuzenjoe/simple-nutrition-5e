@@ -2,9 +2,10 @@
  * @import { NutritionCandidate, NutritionConsumption, NutritionType } from "./types/shared.types.mjs";
  */
 
-import Dialog5e from "/systems/dnd5e/module/applications/api/dialog.mjs";
 import { MODULE_ID } from "./constants.mjs";
 import { formatNutritionAmount, getNutritionCandidate } from "./nutrition.mjs";
+
+const Dialog5e = game.dnd5e.applications.api.Dialog5e;
 
 /**
  * Dialog for choosing food or water items to consume.

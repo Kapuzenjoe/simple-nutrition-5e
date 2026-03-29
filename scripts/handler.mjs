@@ -2,7 +2,6 @@
  * @import { NutritionCandidate, NutritionConsumption, NutritionRestState, NutritionState, NutritionType } from "./types/shared.types.mjs";
  */
 
-import { createRollLabel } from "/systems/dnd5e/module/enrichers.mjs";
 import { MODULE_ID } from "./constants.mjs";
 import {
   formatNutritionAmount,
@@ -11,6 +10,8 @@ import {
   getNutritionNeeds
 } from "./nutrition.mjs";
 import NutritionConsumeDialog from "./consume-dialog.mjs";
+
+const { createRollLabel } = game.dnd5e.enrichers;
 
 const FLAG = "nutrition";
 const CONDITION_DEHYDRATION = "dehydration";
