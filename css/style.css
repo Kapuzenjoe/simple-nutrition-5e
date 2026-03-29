@@ -67,3 +67,73 @@
 .dnd5e2 .simple-nutrition__state {
   pointer-events: none;
 }
+
+.dnd5e2.simple-nutrition-consume .window-content {
+  gap: 8px;
+}
+
+.dnd5e2.simple-nutrition-consume .simple-nutrition-consume__content {
+  display: grid;
+  gap: 10px;
+}
+
+.dnd5e2.simple-nutrition-consume .simple-nutrition-consume__summary {
+  margin: 0;
+}
+
+.dnd5e2.simple-nutrition-consume fieldset {
+  margin: 0;
+}
+
+.dnd5e2.simple-nutrition-consume .form-group {
+  margin: 0;
+}
+
+.dnd5e2.simple-nutrition-consume .simple-nutrition-consume__summary .form-group + .form-group {
+  margin-block-start: 4px;
+}
+
+.dnd5e2.simple-nutrition-consume .simple-nutrition-consume__summary .form-fields {
+  justify-content: flex-end;
+}
+
+.dnd5e2.simple-nutrition-consume .simple-nutrition-consume__summary-value {
+  min-width: 72px;
+  text-align: end;
+  font-weight: bold;
+}
+
+.dnd5e2.simple-nutrition-consume .form-fields {
+  gap: 8px;
+}
+
+.dnd5e2.simple-nutrition-consume .form-fields .hint {
+  margin-inline-end: auto;
+}
+
+.dnd5e2.simple-nutrition-consume input[type="number"] {
+  flex: 0 0 4.5rem;
+  text-align: center;
+}
+
+.dnd5e2.simple-nutrition-consume .drop-area {
+  border: 1px dashed var(--color-border-light-2);
+  border-radius: 4px;
+  padding: 8px;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.dnd5e2.simple-nutrition-consume .drop-area.is-dragover {
+  border-color: var(--dnd5e-color-gold);
+  box-shadow: 0 0 6px var(--dnd5e-color-gold);
+}
+
+.dnd5e2.simple-nutrition-consume [data-drop-container].is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.dnd5e2.simple-nutrition-consume .simple-nutrition-consume__drop .hint {
+  margin: 0;
+  text-align: center;
+}
