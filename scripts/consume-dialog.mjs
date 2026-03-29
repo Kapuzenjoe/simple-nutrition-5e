@@ -162,7 +162,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     this.#restoreFormState();
     this.#updateSelectedAmount();
 
-    for ( const button of this.element.querySelectorAll("[data-action=stepQuantity]") ) {
+    for (const button of this.element.querySelectorAll("[data-action=stepQuantity]")) {
       button.addEventListener("click", event => this.#onStepQuantity(event));
     }
 
@@ -180,7 +180,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     });
     dropArea?.addEventListener("dragenter", () => dropArea.classList.add("is-dragover"));
     dropArea?.addEventListener("dragleave", event => {
-      if ( event.currentTarget.contains(event.relatedTarget) ) return;
+      if (event.currentTarget.contains(event.relatedTarget)) return;
       dropArea.classList.remove("is-dragover");
     });
     dropArea?.addEventListener("drop", event => this.#onDropItem(event));
@@ -215,7 +215,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
       const container = item.container ? ` <span class="hint">(${foundry.utils.escapeHTML(item.container)})</span>` : "";
       const img = item.img ? `<img src="${item.img}" alt="" width="24" height="24">` : "";
       const details = [game.i18n.format("SIMPLE_NUTRITION.Dialog.Owned", { quantity: item.quantity })];
-      if ( item.amount ) details.push(game.i18n.format("SIMPLE_NUTRITION.Dialog.Each", { amount: item.amount }));
+      if (item.amount) details.push(game.i18n.format("SIMPLE_NUTRITION.Dialog.Each", { amount: item.amount }));
       const owned = foundry.utils.escapeHTML(details.join(" | "));
       const decreaseLabel = foundry.utils.escapeHTML(game.i18n.format("SIMPLE_NUTRITION.Dialog.Decrease", {
         item: item.name
@@ -324,9 +324,9 @@ export default class NutritionConsumeDialog extends Dialog5e {
    */
   #restoreFormState() {
     const freshWater = this.element.querySelector("[name=freshWater]");
-    if ( freshWater ) freshWater.checked = this.#formState.freshWater;
+    if (freshWater) freshWater.checked = this.#formState.freshWater;
 
-    for ( const input of this.element.querySelectorAll("[name^='items.']") ) {
+    for (const input of this.element.querySelectorAll("[name^='items.']")) {
       const itemId = input.name.slice(6);
       input.value = this.#formState.quantities[itemId] ?? 0;
     }
@@ -359,7 +359,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    * @returns {number} The selected nutrition amount.
    */
   #getSelectedAmount() {
-    if ( this.type === "water" && this.#formState.freshWater ) return this.requiredValue;
+    if (this.type === "water" && this.#formState.freshWater) return this.requiredValue;
 
     return this.items.reduce((total, item) => {
       return total + ((this.#formState.quantities[item.id] ?? 0) * item.value);
@@ -373,7 +373,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    */
   #updateSelectedAmount() {
     const value = this.element?.querySelector("[data-selected-amount]");
-    if ( value ) value.textContent = this.#formatAmount(this.#getSelectedAmount());
+    if (value) value.textContent = this.#formatAmount(this.#getSelectedAmount());
   }
 
   /**
@@ -385,23 +385,23 @@ export default class NutritionConsumeDialog extends Dialog5e {
   async #onDropItem(event) {
     event.preventDefault();
     event.currentTarget.classList.remove("is-dragover");
-    if ( (this.type === "water") && this.#formState.freshWater ) return;
+    if ((this.type === "water") && this.#formState.freshWater) return;
 
     const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event);
-    if ( data?.type !== "Item" ) return;
+    if (data?.type !== "Item") return;
 
     const item = await Item.implementation.fromDropData(data);
-    if ( !item || (item.parent?.uuid !== this.actor.uuid) || (item.type !== "consumable") ) {
+    if (!item || (item.parent?.uuid !== this.actor.uuid) || (item.type !== "consumable")) {
       ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningDropInvalid"));
       return;
     }
 
-    if ( !Number(item.system.quantity) ) {
+    if (!Number(item.system.quantity)) {
       ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningDropEmpty"));
       return;
     }
 
-    if ( this.items.some(entry => entry.id === item.id) ) {
+    if (this.items.some(entry => entry.id === item.id)) {
       ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningDropDuplicate"));
       return;
     }
@@ -435,10 +435,10 @@ export default class NutritionConsumeDialog extends Dialog5e {
   static async #handleFormSubmission(event, form, formData) {
     const freshWater = (this.type === "water") && Boolean(formData.object.freshWater);
     const entries = Object.entries(formData.object).reduce((result, [key, quantity]) => {
-      if ( !key.startsWith("items.") ) return result;
+      if (!key.startsWith("items.")) return result;
 
       quantity = Number(quantity);
-      if ( quantity <= 0 ) return result;
+      if (quantity <= 0) return result;
 
       result.push({
         itemId: key.slice(6),
@@ -448,16 +448,16 @@ export default class NutritionConsumeDialog extends Dialog5e {
       return result;
     }, []);
 
-    if ( !entries.length && !freshWater ) {
+    if (!entries.length && !freshWater) {
       ui.notifications.warn(game.i18n.localize(this.type === "food"
         ? "SIMPLE_NUTRITION.Dialog.WarningSelectFood"
         : "SIMPLE_NUTRITION.Dialog.WarningSelectWater"));
       return;
     }
 
-    for ( const entry of entries ) {
+    for (const entry of entries) {
       const item = this.actor.items.get(entry.itemId);
-      if ( entry.quantity > item.system.quantity ) {
+      if (entry.quantity > item.system.quantity) {
         ui.notifications.warn(game.i18n.format("SIMPLE_NUTRITION.Dialog.WarningNotEnough", {
           item: item.name
         }));
@@ -477,7 +477,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    * @protected
    */
   _onClose(options = {}) {
-    if ( !options[MODULE_ID]?.submitted ) this.#result = null;
+    if (!options[MODULE_ID]?.submitted) this.#result = null;
   }
 
   /**

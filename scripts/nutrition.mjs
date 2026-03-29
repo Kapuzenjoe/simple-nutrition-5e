@@ -41,7 +41,7 @@ function formatNutritionValue(value) {
  * @returns {string} The formatted amount.
  */
 export function formatNutritionAmount(type, value) {
-  if ( type === "food" ) return formatWeight(value, "lb", { maximumFractionDigits: 3, unitDisplay: "short" });
+  if (type === "food") return formatWeight(value, "lb", { maximumFractionDigits: 3, unitDisplay: "short" });
   return game.i18n.format("SIMPLE_NUTRITION.Dialog.AmountWater", { value: formatNutritionValue(value) });
 }
 
@@ -53,7 +53,7 @@ export function formatNutritionAmount(type, value) {
  * @returns {number} The food amount provided by one item in pounds.
  */
 function getFoodItemAmount(actor, item) {
-  if ( item.system.identifier === MAGICAL_BERRIES_IDENTIFIER ) return getNutritionNeeds(actor).food;
+  if (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) return getNutritionNeeds(actor).food;
   return convertWeight(item.system.weight.value, item.system.weight.units, "lb");
 }
 
@@ -78,8 +78,8 @@ export function getNutritionAmount(actor, type, item) {
  * @returns {string|null} A localized amount hint for one item.
  */
 export function getNutritionAmountLabel(actor, type, item) {
-  if ( type !== "food" ) return null;
-  if ( item.system.identifier === MAGICAL_BERRIES_IDENTIFIER ) {
+  if (type !== "food") return null;
+  if (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) {
     return game.i18n.localize("SIMPLE_NUTRITION.Dialog.AmountFullDay");
   }
   return formatNutritionAmount(type, getNutritionAmount(actor, type, item));

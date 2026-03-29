@@ -16,8 +16,6 @@
  * @property {number} starvation The consecutive number of days without food.
  * @property {boolean} dehydrated Whether the actor is dehydrated after the rest.
  * @property {boolean} malnourished Whether the actor is malnourished after the rest.
- * @property {number} penalty The exhaustion penalty applied at the end of the day.
- * @property {boolean} recoverExhaustion Whether the rest can recover exhaustion.
  * @property {boolean} saveRequired Whether the actor must roll a malnutrition saving throw manually.
  */
 

@@ -16,7 +16,7 @@ const FLAG = "nutrition";
 const CONDITION_DEHYDRATION = "dehydration";
 const CONDITION_MALNUTRITION = "malnutrition";
 const EXHAUSTION_PATH = "system.attributes.exhaustion";
-const WATER_IDENTIFIER = "water-pint";
+const WATER_IDENTIFIERS = new Set(["water-pint", "water-fresh-pint"]);
 const WATERSKIN_IDENTIFIER = "waterskin";
 
 /**
@@ -93,11 +93,12 @@ async function consumeNutrition(actor, nutrition) {
     required: formatNutritionAmount(nutrition, needs[nutrition]),
     requiredValue: needs[nutrition]
   });
-  if ( !consumption ) return false;
+  if (!consumption) return false;
 
-  if ( consumption.entries.length && !consumption.freshWater ) await consumeSelectedItems(actor, consumption);
+  const consumed = consumption.freshWater ? needs.water : getConsumedNutrition(actor, consumption);
+  if (consumption.entries.length && !consumption.freshWater) await consumeSelectedItems(actor, consumption);
 
-  const amount = state[nutrition] + (consumption.freshWater ? needs.water : getConsumedNutrition(actor, consumption));
+  const amount = state[nutrition] + consumed;
   const conditionRemoved = (amount >= needs[nutrition]) && actor.hasConditionEffect(condition);
 
   await actor.setFlag(MODULE_ID, FLAG, {
@@ -106,7 +107,7 @@ async function consumeNutrition(actor, nutrition) {
     [marker]: state[marker] || conditionRemoved
   });
 
-  if ( conditionRemoved ) await actor.toggleStatusEffect(condition, { active: false });
+  if (conditionRemoved) await actor.toggleStatusEffect(condition, { active: false });
 
   return true;
 }
@@ -162,7 +163,7 @@ async function promptMalnutritionSave(actor) {
  * @returns {boolean} True if the message is a new-day rest message.
  */
 function isNewDayRestMessage(message) {
-  if ( message.type !== "rest" ) return false;
+  if (message.type !== "rest") return false;
   const label = game.i18n.localize("DND5E.REST.NewDay.Label").toLowerCase();
   return message.flavor?.toLowerCase().includes(label) ?? false;
 }
@@ -240,15 +241,15 @@ function trackerHTML(actor, editable) {
  */
 function onRenderCharacterActorSheet(app, html) {
   const actor = app.actor;
-  if ( actor.type !== "character" ) return;
-  if ( html.querySelector(".simple-nutrition") ) return;
+  if (actor.type !== "character") return;
+  if (html.querySelector(".simple-nutrition")) return;
 
   const anchor = html.querySelector(".stats .meter-group:last-of-type");
-  if ( !anchor ) return;
+  if (!anchor) return;
 
   anchor.insertAdjacentHTML("afterend", trackerHTML(actor, app.isEditable));
 
-  for ( const button of html.querySelectorAll(".simple-nutrition [data-nutrition]") ) {
+  for (const button of html.querySelectorAll(".simple-nutrition [data-nutrition]")) {
     button.addEventListener("click", event => onToggleNutrition(actor, event));
   }
 }
@@ -266,17 +267,17 @@ async function onToggleNutrition(actor, event) {
   const condition = nutrition === "food" ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
   const marker = nutrition === "food" ? "foodConditionRemoved" : "waterConditionRemoved";
 
-  if ( state[nutrition] > 0 ) {
+  if (state[nutrition] > 0) {
     const action = await foundry.applications.api.DialogV2.confirm({
       content: `
         <p><strong>${foundry.utils.escapeHTML(game.i18n.format("SIMPLE_NUTRITION.Dialog.ManageCurrent", {
-          amount: formatNutritionAmount(nutrition, state[nutrition])
-        }))}</strong></p>
+        amount: formatNutritionAmount(nutrition, state[nutrition])
+      }))}</strong></p>
         <p class="hint">${foundry.utils.escapeHTML(game.i18n.localize(
-          nutrition === "food"
-            ? "SIMPLE_NUTRITION.Dialog.ManageHintFood"
-            : "SIMPLE_NUTRITION.Dialog.ManageHintWater"
-        ))}</p>
+        nutrition === "food"
+          ? "SIMPLE_NUTRITION.Dialog.ManageHintFood"
+          : "SIMPLE_NUTRITION.Dialog.ManageHintWater"
+      ))}</p>
       `,
       window: {
         icon: nutrition === "food" ? "fa-solid fa-drumstick-bite" : "fa-solid fa-glass-water",
@@ -299,14 +300,14 @@ async function onToggleNutrition(actor, event) {
       }
     }, { rejectClose: false });
 
-    if ( action === null ) return;
-    if ( action === false ) {
+    if (action === null) return;
+    if (action === false) {
       await actor.setFlag(MODULE_ID, FLAG, {
         ...state,
         [nutrition]: 0,
         [marker]: false
       });
-      if ( state[marker] ) await actor.toggleStatusEffect(condition, { active: true });
+      if (state[marker]) await actor.toggleStatusEffect(condition, { active: true });
       return;
     }
   }
@@ -336,7 +337,7 @@ function getFoodCandidates(actor) {
   return actor.items.filter(item => {
     return (item.type === "consumable")
       && (item.system.type.value === "food")
-      && (item.system.identifier !== WATER_IDENTIFIER)
+      && !WATER_IDENTIFIERS.has(item.system.identifier)
       && (item.system.identifier !== WATERSKIN_IDENTIFIER)
       && item.system.quantity
       && (getNutritionAmount(actor, "food", item) > 0);
@@ -351,10 +352,13 @@ function getFoodCandidates(actor) {
  */
 function getWaterCandidates(actor) {
   return actor.items.filter(item => {
-    if ( item.system.identifier !== WATER_IDENTIFIER ) return false;
-    if ( !item.system.quantity ) return false;
-    return (item.container?.type === "container")
-      && (item.container.system.identifier === WATERSKIN_IDENTIFIER);
+    if (!WATER_IDENTIFIERS.has(item.system.identifier)) return false;
+    if (!item.system.quantity) return false;
+    if (item.system.identifier === "water-pint") {
+      return (item.container?.type === "container")
+        && (item.container.system.identifier === WATERSKIN_IDENTIFIER);
+    }
+    return true;
   });
 }
 
@@ -369,16 +373,16 @@ async function consumeSelectedItems(actor, consumption) {
   const updates = [];
   const deletions = [];
 
-  for ( const entry of consumption.entries ) {
+  for (const entry of consumption.entries) {
     const item = actor.items.get(entry.itemId);
     const quantity = Math.max(0, item.system.quantity - entry.quantity);
 
-    if ( (quantity === 0) && item.system.uses?.autoDestroy ) deletions.push(item.id);
+    if ((quantity === 0) && item.system.uses?.autoDestroy) deletions.push(item.id);
     else updates.push({ _id: item.id, "system.quantity": quantity });
   }
 
-  if ( deletions.length ) await actor.deleteEmbeddedDocuments("Item", deletions);
-  if ( updates.length ) await actor.updateEmbeddedDocuments("Item", updates);
+  if (deletions.length) await actor.deleteEmbeddedDocuments("Item", deletions);
+  if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
 }
 
 /**
@@ -390,7 +394,7 @@ async function consumeSelectedItems(actor, consumption) {
  * @returns {void}
  */
 function onPreRestCompleted(actor, result, config) {
-  if ( (actor.type !== "character") || !config.newDay ) return;
+  if ((actor.type !== "character") || !config.newDay) return;
 
   const current = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
@@ -401,35 +405,35 @@ function onPreRestCompleted(actor, result, config) {
   const waterFull = current.water >= needs.water;
 
   let penalty = 0;
-  let dehydrated = actor.hasConditionEffect("dehydrated") && !waterFull;
-  let malnourished = actor.hasConditionEffect("malnourished") && !foodFull;
+  let dehydrated = actor.hasConditionEffect(CONDITION_DEHYDRATION) && !waterFull;
+  let malnourished = actor.hasConditionEffect(CONDITION_MALNUTRITION) && !foodFull;
 
-  if ( !waterHalf ) {
+  if (!waterHalf) {
     penalty += 1;
     dehydrated = true;
   }
 
-  if ( (current.food === 0) && (starvation >= 5) ) {
+  if ((current.food === 0) && (starvation >= 5)) {
     penalty += 1;
     malnourished = true;
   }
+
+  const recoverExhaustion = !(dehydrated || malnourished);
 
   /** @type {NutritionRestState} */
   const state = {
     starvation,
     dehydrated,
     malnourished,
-    penalty,
-    recoverExhaustion: !(dehydrated || malnourished),
     saveRequired: !foodHalf && ((current.food > 0) || (starvation < 5))
   };
 
   const exhaustion = foundry.utils.getProperty(result.clone, EXHAUSTION_PATH) ?? 0;
-  const recovery = state.recoverExhaustion ? (config.exhaustionDelta ?? 0) : 0;
+  const recovery = recoverExhaustion ? (config.exhaustionDelta ?? 0) : 0;
   const max = CONFIG.DND5E.conditionTypes.exhaustion.levels ?? 6;
 
   foundry.utils.mergeObject(result.updateData, {
-    [EXHAUSTION_PATH]: Math.clamp(exhaustion + recovery + state.penalty, 0, max)
+    [EXHAUSTION_PATH]: Math.clamp(exhaustion + recovery + penalty, 0, max)
   });
 
   result[MODULE_ID] = state;
@@ -444,10 +448,10 @@ function onPreRestCompleted(actor, result, config) {
  * @returns {Promise<void>} A promise that resolves when nutrition updates finish.
  */
 async function onRestCompleted(actor, result, config) {
-  if ( (actor.type !== "character") || !config.newDay ) return;
+  if ((actor.type !== "character") || !config.newDay) return;
 
   const state = result[MODULE_ID];
-  if ( !state ) return;
+  if (!state) return;
   const previous = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
 
@@ -461,7 +465,8 @@ async function onRestCompleted(actor, result, config) {
 
   await actor.toggleStatusEffect(CONDITION_DEHYDRATION, { active: state.dehydrated });
   await actor.toggleStatusEffect(CONDITION_MALNUTRITION, { active: state.malnourished });
-  if ( result.message ) await result.message.setFlag(MODULE_ID, "restChat", {
+
+  if (result.message) await result.message.setFlag(MODULE_ID, "restChat", {
     previous: {
       food: previous.food,
       water: previous.water,
@@ -472,7 +477,8 @@ async function onRestCompleted(actor, result, config) {
     dehydrated: state.dehydrated,
     malnourished: state.malnourished
   });
-  if ( state.saveRequired ) await promptMalnutritionSave(actor);
+
+  if (state.saveRequired) await promptMalnutritionSave(actor);
 }
 
 /**
@@ -483,43 +489,49 @@ async function onRestCompleted(actor, result, config) {
  * @returns {void}
  */
 function onRenderRestChatMessage(message, html) {
-  if ( !(html instanceof HTMLElement) ) return;
-  if ( !isNewDayRestMessage(message) ) return;
+  if (!(html instanceof HTMLElement)) return;
+  if (!isNewDayRestMessage(message)) return;
 
   const actor = message.getAssociatedActor();
-  if ( !actor?.testUserPermission(game.user, "OWNER") ) return;
+  if (!actor?.testUserPermission(game.user, "OWNER")) return;
+
   const content = html.querySelector(".message-content");
-  if ( !content ) return;
+  if (!content) return;
 
   const render = () => {
     const card = html.querySelector(".rest-card");
-    if ( !card || card.querySelector(".simple-nutrition-chat") ) return false;
+    if (!card || card.querySelector(".simple-nutrition-chat")) return false;
 
     const chat = message.getFlag(MODULE_ID, "restChat");
-    if ( !chat?.previous ) return false;
+    if (!chat?.previous) return false;
 
     const statuses = [];
-    if ( chat.dehydrated ) statuses.push(game.i18n.localize("SIMPLE_NUTRITION.Chat.StatusDehydrated"));
-    if ( chat.malnourished ) statuses.push(game.i18n.localize("SIMPLE_NUTRITION.Chat.StatusMalnourished"));
+    if (chat.dehydrated) statuses.push(game.i18n.localize("SIMPLE_NUTRITION.Chat.StatusDehydrated"));
+    if (chat.malnourished) statuses.push(game.i18n.localize("SIMPLE_NUTRITION.Chat.StatusMalnourished"));
+
     const rows = [
       {
         label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"),
-        complete: chat.previous.food >= chat.previous.foodRequired
+        status: chat.previous.food >= chat.previous.foodRequired
+          ? "full"
+          : (chat.previous.food >= (chat.previous.foodRequired / 2) ? "half" : "none")
       },
       {
         label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"),
-        complete: chat.previous.water >= chat.previous.waterRequired
+        status: chat.previous.water >= chat.previous.waterRequired
+          ? "full"
+          : (chat.previous.water >= (chat.previous.waterRequired / 2) ? "half" : "none")
       }
     ];
 
-    if ( chat.starvation > 0 ) {
+    if (chat.starvation > 0) {
       rows.push({
         label: game.i18n.localize("SIMPLE_NUTRITION.Chat.StarvationLabel"),
         value: game.i18n.format("SIMPLE_NUTRITION.Chat.StarvationValue", { days: chat.starvation })
       });
     }
 
-    if ( statuses.length ) {
+    if (statuses.length) {
       rows.push({
         label: game.i18n.localize("SIMPLE_NUTRITION.Chat.ConditionsLabel"),
         value: statuses.join(", ")
@@ -534,9 +546,10 @@ function onRenderRestChatMessage(message, html) {
             <li class="delta operation-update">
               <span class="label">${foundry.utils.escapeHTML(row.label)}</span>
               <span class="value">
-                ${typeof row.complete === "boolean" ? `
-                  <i class="fa-solid ${row.complete ? "fa-check" : "fa-xmark"}" aria-hidden="true"></i>
-                ` : foundry.utils.escapeHTML(row.value)}
+                ${row.status
+        ? `<i class="fa-solid ${row.status === "full" ? "fa-check" : (row.status === "half" ? "fa-minus" : "fa-xmark")
+        }" aria-hidden="true"></i>`
+        : foundry.utils.escapeHTML(row.value)}
               </span>
             </li>
           `).join("")}
@@ -547,10 +560,10 @@ function onRenderRestChatMessage(message, html) {
     return true;
   };
 
-  if ( render() ) return;
+  if (render()) return;
 
   const observer = new MutationObserver(() => {
-    if ( render() ) observer.disconnect();
+    if (render()) observer.disconnect();
   });
   observer.observe(content, { childList: true, subtree: true });
 }
