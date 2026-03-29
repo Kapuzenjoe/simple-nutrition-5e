@@ -37,3 +37,21 @@ Simple Nutrition 5e tracks daily food and water for `dnd5e` characters and appli
 ## Current Limitations
 - Failed malnutrition saves are resolved manually.
 - Calendar-based day changes are not implemented yet.
+
+## Example
+
+<p align="center">
+  <a href="docs/example-1.png">
+    <img src="docs/example-1.png" alt="Daily tracking" width="220">
+  </a>
+  <a href="docs/example-2.png">
+    <img src="docs/example-2.png" alt="Consume dialog" width="220">
+  </a>
+  <a href="docs/example-3.png">
+    <img src="docs/example-3.png" alt="Rest summary" width="220">
+  </a>
+</p>
+
+<p align="center">
+  <em>Daily tracking</em> · <em>Consume dialog</em> · <em>Rest summary</em>
+</p>
