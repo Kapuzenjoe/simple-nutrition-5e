@@ -26,8 +26,7 @@ const WATERSKIN_IDENTIFIER = "waterskin";
  * @returns {void}
  */
 export function initNutrition() {
-  // Calendar-driven day changes are intentionally deferred pending dnd5e PR #6233:
-  // https://github.com/foundryvtt/dnd5e/pull/6233
+  // Calendar-driven day changes are intentionally deferred pending dnd5e PR https://github.com/foundryvtt/dnd5e/pull/6233
   Hooks.on("renderCharacterActorSheet", onRenderCharacterActorSheet);
   Hooks.on("dnd5e.preRestCompleted", onPreRestCompleted);
   Hooks.on("dnd5e.restCompleted", onRestCompleted);
@@ -134,7 +133,7 @@ async function promptMalnutritionSave(actor) {
     format: "short",
     icon: true
   };
-  const guidance = await TextEditor.enrichHTML(
+  const guidance = await foundry.applications.ux.TextEditor.enrichHTML(
     game.i18n.localize("SIMPLE_NUTRITION.Rest.MalnutritionSaveHint"),
     { async: true }
   );
