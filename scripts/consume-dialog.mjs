@@ -458,6 +458,10 @@ export default class NutritionConsumeDialog extends Dialog5e {
 
     for (const entry of entries) {
       const item = this.actor.items.get(entry.itemId);
+      if (!item) {
+        ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningItemMissing"));
+        return;
+      }
       if (entry.quantity > item.system.quantity) {
         ui.notifications.warn(game.i18n.format("SIMPLE_NUTRITION.Dialog.WarningNotEnough", {
           item: item.name

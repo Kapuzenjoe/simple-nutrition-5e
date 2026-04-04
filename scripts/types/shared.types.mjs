@@ -12,6 +12,13 @@
  */
 
 /**
+ * @typedef {object} NutritionConfig
+ * @property {number|null} foodPerDay The actor-specific daily food requirement in pounds.
+ * @property {number|null} waterPerDay The actor-specific daily water requirement in gallons.
+ * @property {number|null} starvationLimit The actor-specific starvation threshold in days.
+ */
+
+/**
  * @typedef {object} NutritionRestState
  * @property {number} starvation The consecutive number of days without food.
  * @property {boolean} dehydrated Whether the actor is dehydrated after the rest.

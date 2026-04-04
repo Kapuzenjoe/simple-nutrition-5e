@@ -1,0 +1,14 @@
+<section class="flexcol">
+    <fieldset class="card">
+        <legend>{{ localize "SIMPLE_NUTRITION.Config.Requirements" }}</legend>
+        <p class="hint">{{ localize "SIMPLE_NUTRITION.Config.OverrideHint" }}</p>
+        {{ formField fields.foodPerDay name="config.foodPerDay" value=data.foodPerDay placeholder=placeholders.foodPerDay
+                     hint=hints.foodPerDay localize=true rootId=partId step=0.125 }}
+        {{ formField fields.waterPerDay name="config.waterPerDay" value=data.waterPerDay placeholder=placeholders.waterPerDay
+                     hint=hints.waterPerDay localize=true rootId=partId step=0.125 }}
+        <hr>
+        {{ formField fields.starvationLimit name="config.starvationLimit" value=data.starvationLimit
+                     placeholder=placeholders.starvationLimit hint=hints.starvationLimit localize=true rootId=partId
+                     step=1 }}
+    </fieldset>
+</section>

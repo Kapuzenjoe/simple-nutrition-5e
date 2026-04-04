@@ -2,6 +2,16 @@
   margin-block-start: 0.5rem;
 }
 
+.dnd5e2 .simple-nutrition > .label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.dnd5e2 .simple-nutrition > .label .config-button {
+  margin-inline-start: auto;
+}
+
 .dnd5e2 .simple-nutrition__row {
   display: flex;
   gap: 0.5rem;

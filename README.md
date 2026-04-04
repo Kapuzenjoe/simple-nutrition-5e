@@ -35,6 +35,7 @@ Simple Nutrition 5e tracks daily food and water for `dnd5e` characters and appli
 - Keeps exhaustion itself unchanged until it is removed through the normal game workflow.
 
 ## Current Limitations
+- Currently, only the modern D&D 5.5 edition is supported.
 - Failed malnutrition saves are resolved manually.
 - Calendar-based day changes are not implemented yet.
 

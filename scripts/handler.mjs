@@ -2,23 +2,27 @@
  * @import { NutritionCandidate, NutritionConsumption, NutritionRestState, NutritionState, NutritionType } from "./types/shared.types.mjs";
  */
 
-import { MODULE_ID } from "./constants.mjs";
+import {
+  CONDITION_DEHYDRATION,
+  CONDITION_MALNUTRITION,
+  EXHAUSTION_PATH,
+  MODULE_ID,
+  WATER_IDENTIFIERS,
+  WATERSKIN_IDENTIFIER
+} from "./constants.mjs";
 import {
   formatNutritionAmount,
   getNutritionAmount,
   getNutritionCandidate,
-  getNutritionNeeds
+  getNutritionNeeds,
+  getNutritionState,
+  getStarvationLimit,
+  setNutritionState
 } from "./nutrition.mjs";
 import NutritionConsumeDialog from "./consume-dialog.mjs";
+import NutritionConfig from "./nutrition-config.mjs";
 
 const { createRollLabel } = game.dnd5e.enrichers;
-
-const FLAG = "nutrition";
-const CONDITION_DEHYDRATION = "dehydration";
-const CONDITION_MALNUTRITION = "malnutrition";
-const EXHAUSTION_PATH = "system.attributes.exhaustion";
-const WATER_IDENTIFIERS = new Set(["water-pint", "water-fresh-pint"]);
-const WATERSKIN_IDENTIFIER = "waterskin";
 
 /**
  * Register all nutrition hooks.
@@ -31,20 +35,6 @@ export function initNutrition() {
   Hooks.on("dnd5e.preRestCompleted", onPreRestCompleted);
   Hooks.on("dnd5e.restCompleted", onRestCompleted);
   Hooks.on("renderChatMessageHTML", onRenderRestChatMessage);
-}
-
-/**
- * Get the current nutrition state for an actor.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {NutritionState} The stored nutrition state.
- */
-function getNutritionState(actor) {
-  return foundry.utils.mergeObject(
-    { food: 0, water: 0, starvation: 0, foodConditionRemoved: false, waterConditionRemoved: false },
-    actor.getFlag(MODULE_ID, FLAG) ?? {},
-    { inplace: false }
-  );
 }
 
 /**
@@ -67,6 +57,7 @@ function formatNutritionValue(value) {
 function getConsumedNutrition(actor, consumption) {
   return consumption.entries.reduce((total, entry) => {
     const item = actor.items.get(entry.itemId);
+    if (!item) return total;
     return total + (getNutritionAmount(actor, consumption.type, item) * entry.quantity);
   }, 0);
 }
@@ -101,7 +92,7 @@ async function consumeNutrition(actor, nutrition) {
   const amount = state[nutrition] + consumed;
   const conditionRemoved = (amount >= needs[nutrition]) && actor.hasConditionEffect(condition);
 
-  await actor.setFlag(MODULE_ID, FLAG, {
+  await setNutritionState(actor, {
     ...state,
     [nutrition]: amount,
     [marker]: state[marker] || conditionRemoved
@@ -157,27 +148,16 @@ async function promptMalnutritionSave(actor) {
 }
 
 /**
- * Determine whether a chat message represents a rest that starts a new day.
- *
- * @param {ChatMessage5e} message The chat message to inspect.
- * @returns {boolean} True if the message is a new-day rest message.
- */
-function isNewDayRestMessage(message) {
-  if (message.type !== "rest") return false;
-  const label = game.i18n.localize("DND5E.REST.NewDay.Label").toLowerCase();
-  return message.flavor?.toLowerCase().includes(label) ?? false;
-}
-
-/**
  * Render the nutrition tracker markup.
  *
  * @param {Actor5e} actor The actor being rendered.
  * @param {boolean} editable Whether the tracker can be interacted with.
  * @returns {string} The rendered tracker markup.
  */
-function trackerHTML(actor, editable) {
+function trackerHTML(actor, editable, configurable) {
   const state = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
+  const configTooltip = foundry.utils.escapeHTML(game.i18n.localize("SIMPLE_NUTRITION.Config.Configure"));
   const foodProgress = game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
     current: formatNutritionValue(state.food),
     required: formatNutritionValue(needs.food)
@@ -199,6 +179,17 @@ function trackerHTML(actor, editable) {
     <div class="meter-group simple-nutrition">
       <div class="label roboto-condensed-upper">
         <span>${game.i18n.localize("SIMPLE_NUTRITION.Tracker.Title")}</span>
+        ${configurable ? `
+          <button
+            type="button"
+            class="config-button unbutton"
+            data-action="configureNutrition"
+            data-tooltip="${configTooltip}"
+            aria-label="${configTooltip}"
+          >
+            <i class="fas fa-cog" inert></i>
+          </button>
+        ` : ""}
       </div>
 
       <div class="simple-nutrition__row">
@@ -247,11 +238,32 @@ function onRenderCharacterActorSheet(app, html) {
   const anchor = html.querySelector(".stats .meter-group:last-of-type");
   if (!anchor) return;
 
-  anchor.insertAdjacentHTML("afterend", trackerHTML(actor, app.isEditable));
+  const configurable = app.isEditable && !!app.isEditMode;
+  anchor.insertAdjacentHTML("afterend", trackerHTML(actor, app.isEditable, configurable));
 
   for (const button of html.querySelectorAll(".simple-nutrition [data-nutrition]")) {
     button.addEventListener("click", event => onToggleNutrition(actor, event));
   }
+
+  for (const button of html.querySelectorAll(".simple-nutrition [data-action='configureNutrition']")) {
+    button.addEventListener("click", event => onConfigureNutrition(app, event));
+  }
+}
+
+/**
+ * Open the nutrition config sheet for the current actor.
+ *
+ * @param {CharacterActorSheet} app The rendered character sheet application.
+ * @param {PointerEvent} event The originating click event.
+ * @returns {void}
+ */
+function onConfigureNutrition(app, event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const config = new NutritionConfig({ document: app.actor });
+  if (typeof app._renderChild === "function") return void app._renderChild(config);
+  void config.render(true);
 }
 
 /**
@@ -302,7 +314,7 @@ async function onToggleNutrition(actor, event) {
 
     if (action === null) return;
     if (action === false) {
-      await actor.setFlag(MODULE_ID, FLAG, {
+      await setNutritionState(actor, {
         ...state,
         [nutrition]: 0,
         [marker]: false
@@ -375,6 +387,7 @@ async function consumeSelectedItems(actor, consumption) {
 
   for (const entry of consumption.entries) {
     const item = actor.items.get(entry.itemId);
+    if (!item) continue;
     const quantity = Math.max(0, item.system.quantity - entry.quantity);
 
     if ((quantity === 0) && item.system.uses?.autoDestroy) deletions.push(item.id);
@@ -398,6 +411,7 @@ function onPreRestCompleted(actor, result, config) {
 
   const current = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
+  const starvationLimit = getStarvationLimit(actor);
   const starvation = current.food > 0 ? 0 : (current.starvation + 1);
   const foodHalf = current.food >= (needs.food / 2);
   const foodFull = current.food >= needs.food;
@@ -413,7 +427,7 @@ function onPreRestCompleted(actor, result, config) {
     dehydrated = true;
   }
 
-  if ((current.food === 0) && (starvation >= 5)) {
+  if ((current.food === 0) && (starvation >= starvationLimit)) {
     penalty += 1;
     malnourished = true;
   }
@@ -425,15 +439,19 @@ function onPreRestCompleted(actor, result, config) {
     starvation,
     dehydrated,
     malnourished,
-    saveRequired: !foodHalf && ((current.food > 0) || (starvation < 5))
+    saveRequired: !foodHalf && ((current.food > 0) || (starvation < starvationLimit))
   };
 
-  const exhaustion = foundry.utils.getProperty(result.clone, EXHAUSTION_PATH) ?? 0;
-  const recovery = recoverExhaustion ? (config.exhaustionDelta ?? 0) : 0;
+  const currentExhaustion = foundry.utils.getProperty(result.clone, EXHAUSTION_PATH) ?? 0;
+  const pendingExhaustion = foundry.utils.getProperty(result.updateData, EXHAUSTION_PATH);
+  let exhaustion = pendingExhaustion ?? currentExhaustion;
+  if (!recoverExhaustion && (pendingExhaustion !== undefined)) {
+    exhaustion -= Math.min(pendingExhaustion - currentExhaustion, 0);
+  }
   const max = CONFIG.DND5E.conditionTypes.exhaustion.levels ?? 6;
 
   foundry.utils.mergeObject(result.updateData, {
-    [EXHAUSTION_PATH]: Math.clamp(exhaustion + recovery + penalty, 0, max)
+    [EXHAUSTION_PATH]: Math.clamp(exhaustion + penalty, 0, max)
   });
 
   result[MODULE_ID] = state;
@@ -455,7 +473,7 @@ async function onRestCompleted(actor, result, config) {
   const previous = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
 
-  await actor.setFlag(MODULE_ID, FLAG, {
+  await setNutritionState(actor, {
     food: 0,
     water: 0,
     starvation: state.starvation,
@@ -490,7 +508,8 @@ async function onRestCompleted(actor, result, config) {
  */
 function onRenderRestChatMessage(message, html) {
   if (!(html instanceof HTMLElement)) return;
-  if (!isNewDayRestMessage(message)) return;
+  const chat = message.getFlag(MODULE_ID, "restChat");
+  if (!chat?.previous) return;
 
   const actor = message.getAssociatedActor();
   if (!actor?.testUserPermission(game.user, "OWNER")) return;
@@ -501,9 +520,6 @@ function onRenderRestChatMessage(message, html) {
   const render = () => {
     const card = html.querySelector(".rest-card");
     if (!card || card.querySelector(".simple-nutrition-chat")) return false;
-
-    const chat = message.getFlag(MODULE_ID, "restChat");
-    if (!chat?.previous) return false;
 
     const statuses = [];
     if (chat.dehydrated) statuses.push(game.i18n.localize("SIMPLE_NUTRITION.Chat.StatusDehydrated"));

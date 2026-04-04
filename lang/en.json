@@ -31,6 +31,7 @@
       "WarningDropDuplicate": "That item is already available in this dialog.",
       "WarningDropEmpty": "That item has no remaining quantity.",
       "WarningDropInvalid": "Only consumables from this actor's inventory can be added here.",
+      "WarningItemMissing": "That item is no longer available.",
       "WarningSelectFood": "Select food to consume.",
       "WarningSelectWater": "Select water to consume.",
       "WarningNotEnough": "Not enough {item}."
@@ -42,6 +43,17 @@
       "Progress": "{current}/{required}",
       "FoodTooltip": "Food consumed today: {current} of {required}",
       "WaterTooltip": "Water consumed today: {current} of {required}"
+    },
+    "Config": {
+      "Title": "Nutrition",
+      "Configure": "Configure Nutrition",
+      "Requirements": "Daily Needs",
+      "OverrideHint": "Leave a field blank to use the actor's size-based default.",
+      "FoodPerDay": "Food per Day",
+      "WaterPerDay": "Water per Day",
+      "StarvationLimit": "Days Without Food",
+      "DefaultValue": "Default: {value}",
+      "DefaultDays": "Default: {days} days"
     },
     "Chat": {
       "Title": "Nutrition",
