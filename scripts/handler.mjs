@@ -4,6 +4,8 @@
 
 import {
   CONDITION_DEHYDRATION,
+  CONDITION_EFFECT_DEHYDRATED,
+  CONDITION_EFFECT_MALNOURISHED,
   CONDITION_MALNUTRITION,
   EXHAUSTION_PATH,
   MODULE_ID,
@@ -65,6 +67,7 @@ async function consumeNutrition(actor, nutrition) {
   const items = getConsumableItems(actor, nutrition);
   const needs = getNutritionNeeds(actor);
   const condition = nutrition === "food" ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
+  const conditionEffect = nutrition === "food" ? CONDITION_EFFECT_MALNOURISHED : CONDITION_EFFECT_DEHYDRATED;
   const marker = nutrition === "food" ? "foodConditionRemoved" : "waterConditionRemoved";
 
   /** @type {NutritionConsumption|null} */
@@ -81,7 +84,7 @@ async function consumeNutrition(actor, nutrition) {
   if (consumption.entries.length && !consumption.freshWater) await consumeSelectedItems(actor, consumption);
 
   const amount = state[nutrition] + consumed;
-  const conditionRemoved = (amount >= needs[nutrition]) && actor.hasConditionEffect(condition);
+  const conditionRemoved = (amount >= needs[nutrition]) && actor.hasConditionEffect(conditionEffect);
 
   await setNutritionState(actor, {
     ...state,
@@ -410,8 +413,8 @@ function onPreRestCompleted(actor, result, config) {
   const waterFull = current.water >= needs.water;
 
   let penalty = 0;
-  let dehydrated = actor.hasConditionEffect(CONDITION_DEHYDRATION) && !waterFull;
-  let malnourished = actor.hasConditionEffect(CONDITION_MALNUTRITION) && !foodFull;
+  let dehydrated = actor.hasConditionEffect(CONDITION_EFFECT_DEHYDRATED) && !waterFull;
+  let malnourished = actor.hasConditionEffect(CONDITION_EFFECT_MALNOURISHED) && !foodFull;
 
   if (!waterHalf) {
     penalty += 1;
