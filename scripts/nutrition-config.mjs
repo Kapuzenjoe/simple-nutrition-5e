@@ -54,8 +54,12 @@ export default class NutritionConfig extends BaseConfigSheet {
     const config = getNutritionConfig(this.document);
     const weightUnit = defaultUnits("weight");
     const metricVolume = game.settings.get("dnd5e", "metricVolumeUnits");
-    const foodUnitLabel = CONFIG.DND5E.weightUnits[weightUnit]?.abbreviation ?? weightUnit;
-    const waterUnitLabel = metricVolume ? CONFIG.DND5E.volumeUnits.liter.abbreviation : "gal";
+    const foodUnitLabelKey = CONFIG.DND5E.weightUnits[weightUnit]?.abbreviation;
+    const waterUnitLabelKey = metricVolume ? CONFIG.DND5E.volumeUnits.liter.abbreviation : null;
+    const foodUnitLabel = game.i18n.has(foodUnitLabelKey) ? game.i18n.localize(foodUnitLabelKey) : (foodUnitLabelKey ?? weightUnit);
+    const waterUnitLabel = metricVolume
+      ? (game.i18n.has(waterUnitLabelKey) ? game.i18n.localize(waterUnitLabelKey) : "L")
+      : "gal";
     context.data = {
       foodPerDay: (config.foodPerDay === null) ? null : convertWeight(config.foodPerDay, "lb", weightUnit),
       waterPerDay: (config.waterPerDay === null)

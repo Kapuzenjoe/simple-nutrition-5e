@@ -12,6 +12,7 @@ import {
 } from "./constants.mjs";
 import {
   formatNutritionAmount,
+  formatNutritionValue,
   getNutritionAmount,
   getNutritionCandidate,
   getNutritionNeeds,
@@ -35,16 +36,6 @@ export function initNutrition() {
   Hooks.on("dnd5e.preRestCompleted", onPreRestCompleted);
   Hooks.on("dnd5e.restCompleted", onRestCompleted);
   Hooks.on("renderChatMessageHTML", onRenderRestChatMessage);
-}
-
-/**
- * Format a numeric nutrition value.
- *
- * @param {number} value The numeric value to format.
- * @returns {string} The formatted value.
- */
-function formatNutritionValue(value) {
-  return value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
 }
 
 /**
@@ -159,12 +150,12 @@ function trackerHTML(actor, editable, configurable) {
   const needs = getNutritionNeeds(actor);
   const configTooltip = foundry.utils.escapeHTML(game.i18n.localize("SIMPLE_NUTRITION.Config.Configure"));
   const foodProgress = game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
-    current: formatNutritionValue(state.food),
-    required: formatNutritionValue(needs.food)
+    current: formatNutritionValue("food", state.food),
+    required: formatNutritionValue("food", needs.food)
   });
   const waterProgress = game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
-    current: formatNutritionValue(state.water),
-    required: formatNutritionValue(needs.water)
+    current: formatNutritionValue("water", state.water),
+    required: formatNutritionValue("water", needs.water)
   });
   const foodTooltip = game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
     current: formatNutritionAmount("food", state.food),
@@ -238,7 +229,7 @@ function onRenderCharacterActorSheet(app, html) {
   const anchor = html.querySelector(".stats .meter-group:last-of-type");
   if (!anchor) return;
 
-  const configurable = app.isEditable && !!app.isEditMode;
+  const configurable = app.isEditable && !!(app.isEditMode ?? (app._mode === app.constructor.MODES?.EDIT));
   anchor.insertAdjacentHTML("afterend", trackerHTML(actor, app.isEditable, configurable));
 
   for (const button of html.querySelectorAll(".simple-nutrition [data-nutrition]")) {

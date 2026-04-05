@@ -1,7 +1,8 @@
 # Simple Nutrition 5e
 
 ![Static Badge](https://img.shields.io/badge/Foundry-v13--14-informational)
-![Static Badge](https://img.shields.io/badge/Dnd5e-v5.3-informational)
+![Static Badge](https://img.shields.io/badge/Dnd5e-v5.2%2B-informational)
+![Static Badge](https://img.shields.io/badge/Dnd5e-v5.3%2B-informational)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/peterlankton86911)
 
@@ -13,6 +14,12 @@ Simple Nutrition 5e tracks daily food and water for `dnd5e` characters and appli
 - Tracks food and water separately for each character.
 - Calculates daily requirements from actor size.
 - Shows the current progress directly on the character sheet.
+- Uses the current `dnd5e` display settings for metric weight and volume where applicable.
+
+### Actor configuration
+- In sheet edit mode, a config button appears next to the nutrition tracker.
+- Supports actor-specific overrides for daily food, daily water, and starvation threshold.
+- Empty config fields fall back to the module defaults based on actor size.
 
 ### Consume dialog
 - Open food and water consumption directly from the actor sheet.

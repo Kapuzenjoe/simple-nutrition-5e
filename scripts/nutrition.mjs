@@ -124,12 +124,20 @@ export function getStarvationLimit(actor) {
 }
 
 /**
- * Format a numeric nutrition value.
+ * Format a nutrition amount using the active display units without appending the unit label.
  *
- * @param {number} value The numeric value to format.
- * @returns {string} The formatted value.
+ * @param {NutritionType} type The nutrition type.
+ * @param {number} value The nutrition amount.
+ * @returns {string} The formatted amount.
  */
-function formatNutritionValue(value) {
+export function formatNutritionValue(type, value) {
+  if (type === "food") {
+    const unit = game.dnd5e.utils.defaultUnits("weight");
+    return convertWeight(value, "lb", unit).toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
+  }
+  if (game.settings.get("dnd5e", "metricVolumeUnits")) {
+    return (value * LITERS_PER_GALLON).toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
+  }
   return value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
 }
 
@@ -154,7 +162,9 @@ export function formatNutritionAmount(type, value) {
       unitDisplay: "short"
     });
   }
-  return game.i18n.format("SIMPLE_NUTRITION.Dialog.AmountWater", { value: formatNutritionValue(value) });
+  return game.i18n.format("SIMPLE_NUTRITION.Dialog.AmountWater", {
+    value: value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 })
+  });
 }
 
 /**
