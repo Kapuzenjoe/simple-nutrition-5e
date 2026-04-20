@@ -50,7 +50,10 @@ export default class NutritionConfig extends BaseConfigSheet {
   async _preparePartContext(partId, context, options) {
     context = await super._preparePartContext(partId, context, options);
 
-    const defaults = this.#getDefaultValues();
+    const defaults = {
+      ...getDefaultNutritionNeeds(this.document),
+      starvation: STARVATION_LIMIT
+    };
     const config = getNutritionConfig(this.document);
     const weightUnit = defaultUnits("weight");
     const metricVolume = game.settings.get("dnd5e", "metricVolumeUnits");
@@ -135,19 +138,6 @@ export default class NutritionConfig extends BaseConfigSheet {
         : (metricVolume ? (waterPerDay / LITERS_PER_GALLON) : waterPerDay),
       starvationLimit: this.#normalizeNumber(config.starvationLimit, { integer: true })
     });
-  }
-
-  /**
-   * Get the size-based default values for this actor.
-   *
-   * @returns {{ food: number, water: number, starvation: number }} The size-based defaults.
-   */
-  #getDefaultValues() {
-    const defaults = getDefaultNutritionNeeds(this.document);
-    return {
-      ...defaults,
-      starvation: STARVATION_LIMIT
-    };
   }
 
   /**

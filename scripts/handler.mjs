@@ -35,24 +35,10 @@ const { createRollLabel } = game.dnd5e.enrichers;
 export function initNutrition() {
   // Calendar-driven day changes are intentionally deferred pending dnd5e PR https://github.com/foundryvtt/dnd5e/pull/6233
   Hooks.on("renderCharacterActorSheet", onRenderCharacterActorSheet);
+  if (game.modules.get("tidy5e-sheet")?.active) Hooks.once("tidy5e-sheet.ready", registerTidyNutritionContent);
   Hooks.on("dnd5e.preRestCompleted", onPreRestCompleted);
   Hooks.on("dnd5e.restCompleted", onRestCompleted);
   Hooks.on("renderChatMessageHTML", onRenderRestChatMessage);
-}
-
-/**
- * Get the total nutrition amount contributed by a consumption selection.
- *
- * @param {Actor5e} actor The consuming actor.
- * @param {NutritionConsumption} consumption The selected consumption data.
- * @returns {number} The consumed nutrition amount.
- */
-function getConsumedNutrition(actor, consumption) {
-  return consumption.entries.reduce((total, entry) => {
-    const item = actor.items.get(entry.itemId);
-    if (!item) return total;
-    return total + (getNutritionAmount(actor, consumption.type, item) * entry.quantity);
-  }, 0);
 }
 
 /**
@@ -63,25 +49,33 @@ function getConsumedNutrition(actor, consumption) {
  * @returns {Promise<boolean>} True if consumption was applied.
  */
 async function consumeNutrition(actor, nutrition) {
+  const isFood = nutrition === "food";
   const state = getNutritionState(actor);
   const items = getConsumableItems(actor, nutrition);
   const needs = getNutritionNeeds(actor);
-  const condition = nutrition === "food" ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
-  const conditionEffect = nutrition === "food" ? CONDITION_EFFECT_MALNOURISHED : CONDITION_EFFECT_DEHYDRATED;
-  const marker = nutrition === "food" ? "foodConditionRemoved" : "waterConditionRemoved";
+  const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
+  const conditionEffect = isFood ? CONDITION_EFFECT_MALNOURISHED : CONDITION_EFFECT_DEHYDRATED;
+  const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
 
   /** @type {NutritionConsumption|null} */
   const consumption = await NutritionConsumeDialog.consume(actor, {
     type: nutrition,
-    daysWithoutFood: nutrition === "food" ? state.starvation : 0,
+    daysWithoutFood: isFood ? state.starvation : 0,
     items,
     required: formatNutritionAmount(nutrition, needs[nutrition]),
     requiredValue: needs[nutrition]
   });
   if (!consumption) return false;
 
-  const consumed = consumption.freshWater ? needs.water : getConsumedNutrition(actor, consumption);
-  if (consumption.entries.length && !consumption.freshWater) await consumeSelectedItems(actor, consumption);
+  const entries = consumption.entries.reduce((result, entry) => {
+    const item = actor.items.get(entry.itemId);
+    if (item) result.push({ item, quantity: entry.quantity });
+    return result;
+  }, []);
+  const consumed = consumption.freshWater ? needs.water : entries.reduce((total, entry) => {
+    return total + (getNutritionAmount(actor, nutrition, entry.item) * entry.quantity);
+  }, 0);
+  if (entries.length && !consumption.freshWater) await consumeSelectedItems(actor, entries);
 
   const amount = state[nutrition] + consumed;
   const conditionRemoved = (amount >= needs[nutrition]) && actor.hasConditionEffect(conditionEffect);
@@ -218,6 +212,66 @@ function trackerHTML(actor, editable, configurable) {
 }
 
 /**
+ * Render compact nutrition controls for Tidy 5e header actions.
+ *
+ * @param {Actor5e} actor The actor being rendered.
+ * @param {boolean} editable Whether the tracker can be interacted with.
+ * @returns {string} The rendered tracker markup.
+ */
+function tidyTrackerHTML(actor, editable, configurable) {
+  const state = getNutritionState(actor);
+  const needs = getNutritionNeeds(actor);
+  const configTooltip = foundry.utils.escapeHTML(game.i18n.localize("SIMPLE_NUTRITION.Config.Configure"));
+  const foodTooltip = game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
+    current: formatNutritionAmount("food", state.food),
+    required: formatNutritionAmount("food", needs.food)
+  });
+  const waterTooltip = game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
+    current: formatNutritionAmount("water", state.water),
+    required: formatNutritionAmount("water", needs.water)
+  });
+
+  return `
+    <button
+      type="button"
+      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${(state.food >= needs.food) ? "simple-nutrition__button--ready" : ""}"
+      data-simple-nutrition
+      data-nutrition="food"
+      data-tooltip="${foodTooltip}"
+      aria-label="${foodTooltip}"
+      ${editable ? "" : "disabled"}
+    >
+      <i class="fas fa-drumstick-bite" inert></i>
+    </button>
+
+    <button
+      type="button"
+      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${(state.water >= needs.water) ? "simple-nutrition__button--ready" : ""}"
+      data-simple-nutrition
+      data-nutrition="water"
+      data-tooltip="${waterTooltip}"
+      aria-label="${waterTooltip}"
+      ${editable ? "" : "disabled"}
+    >
+      <i class="fas fa-glass-water" inert></i>
+    </button>
+
+    ${configurable ? `
+      <button
+        type="button"
+        class="button button-borderless button-icon-only button-config flexshrink"
+        data-simple-nutrition
+        data-action="configureNutrition"
+        data-tooltip="${configTooltip}"
+        aria-label="${configTooltip}"
+      >
+        <i class="fas fa-cog" inert></i>
+      </button>
+    ` : ""}
+  `;
+}
+
+/**
  * Inject the nutrition tracker into the character sheet.
  *
  * @param {CharacterActorSheet} app The rendered character sheet application.
@@ -245,6 +299,41 @@ function onRenderCharacterActorSheet(app, html) {
 }
 
 /**
+ * Register compact nutrition controls with Tidy 5e character sheets.
+ *
+ * @param {object} api Tidy 5e Sheets API.
+ * @returns {void}
+ */
+function registerTidyNutritionContent(api) {
+  const headerActionsSelector = '[data-tidy-sheet-part="sheet-header-actions-container"]';
+
+  api.registerCharacterContent(new api.models.HtmlContent({
+    html: context => {
+      const editable = context.editable ?? context.actor?.isOwner ?? false;
+      return tidyTrackerHTML(context.actor, editable, editable && !!context.unlocked);
+    },
+    injectParams: {
+      selector: headerActionsSelector,
+      position: "afterbegin"
+    },
+    enabled: context => context.actor?.type === "character",
+    onRender: ({ app, element }) => {
+      const actor = app.actor;
+      const anchor = element.querySelector(headerActionsSelector);
+      if (!actor || !anchor) return;
+
+      for (const button of anchor.querySelectorAll("[data-simple-nutrition][data-nutrition]")) {
+        button.addEventListener("click", event => onToggleNutrition(actor, event));
+      }
+
+      for (const button of anchor.querySelectorAll("[data-simple-nutrition][data-action='configureNutrition']")) {
+        button.addEventListener("click", event => onConfigureNutrition(app, event));
+      }
+    }
+  }), { layout: "all" });
+}
+
+/**
  * Open the nutrition config sheet for the current actor.
  *
  * @param {CharacterActorSheet} app The rendered character sheet application.
@@ -269,9 +358,10 @@ function onConfigureNutrition(app, event) {
  */
 async function onToggleNutrition(actor, event) {
   const { nutrition } = event.currentTarget.dataset;
+  const isFood = nutrition === "food";
   const state = getNutritionState(actor);
-  const condition = nutrition === "food" ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
-  const marker = nutrition === "food" ? "foodConditionRemoved" : "waterConditionRemoved";
+  const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
+  const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
 
   if (state[nutrition] > 0) {
     const action = await foundry.applications.api.DialogV2.confirm({
@@ -279,15 +369,15 @@ async function onToggleNutrition(actor, event) {
         <p><strong>${foundry.utils.escapeHTML(game.i18n.format("SIMPLE_NUTRITION.Dialog.ManageCurrent", {
         amount: formatNutritionAmount(nutrition, state[nutrition])
       }))}</strong></p>
-        <p class="hint">${foundry.utils.escapeHTML(game.i18n.localize(
-        nutrition === "food"
+      <p class="hint">${foundry.utils.escapeHTML(game.i18n.localize(
+        isFood
           ? "SIMPLE_NUTRITION.Dialog.ManageHintFood"
           : "SIMPLE_NUTRITION.Dialog.ManageHintWater"
       ))}</p>
       `,
       window: {
-        icon: nutrition === "food" ? "fa-solid fa-drumstick-bite" : "fa-solid fa-glass-water",
-        title: nutrition === "food"
+        icon: isFood ? "fa-solid fa-drumstick-bite" : "fa-solid fa-glass-water",
+        title: isFood
           ? "SIMPLE_NUTRITION.Dialog.ManageTitleFood"
           : "SIMPLE_NUTRITION.Dialog.ManageTitleWater"
       },
@@ -297,7 +387,7 @@ async function onToggleNutrition(actor, event) {
       },
       no: {
         icon: "fa-solid fa-rotate-left",
-        label: nutrition === "food"
+        label: isFood
           ? "SIMPLE_NUTRITION.Dialog.ClearFood"
           : "SIMPLE_NUTRITION.Dialog.ClearWater"
       },
@@ -341,12 +431,12 @@ function getConsumableItems(actor, type) {
  */
 function getFoodCandidates(actor) {
   return actor.items.filter(item => {
-    return (item.type === "consumable")
-      && (item.system.type.value === "food")
-      && !WATER_IDENTIFIERS.has(item.system.identifier)
-      && (item.system.identifier !== WATERSKIN_IDENTIFIER)
-      && item.system.quantity
-      && (getNutritionAmount(actor, "food", item) > 0);
+    if (item.type !== "consumable") return false;
+    if (!item.system.quantity) return false;
+    if (item.system.type.value !== "food") return false;
+    if (WATER_IDENTIFIERS.has(item.system.identifier)) return false;
+    if (item.system.identifier === WATERSKIN_IDENTIFIER) return false;
+    return getNutritionAmount(actor, "food", item) > 0;
   });
 }
 
@@ -358,8 +448,9 @@ function getFoodCandidates(actor) {
  */
 function getWaterCandidates(actor) {
   return actor.items.filter(item => {
-    if (!WATER_IDENTIFIERS.has(item.system.identifier)) return false;
+    if (item.type !== "consumable") return false;
     if (!item.system.quantity) return false;
+    if (!WATER_IDENTIFIERS.has(item.system.identifier)) return false;
     if (item.system.identifier === "water-pint") {
       return (item.container?.type === "container")
         && (item.container.system.identifier === WATERSKIN_IDENTIFIER);
@@ -372,20 +463,18 @@ function getWaterCandidates(actor) {
  * Consume the selected nutrition items from the actor.
  *
  * @param {Actor5e} actor The actor to update.
- * @param {NutritionConsumption} consumption The selected consumption data.
+ * @param {{ item: Item5e, quantity: number }[]} entries The selected consumption entries.
  * @returns {Promise<void>} A promise that resolves when item updates finish.
  */
-async function consumeSelectedItems(actor, consumption) {
+async function consumeSelectedItems(actor, entries) {
   const updates = [];
   const deletions = [];
 
-  for (const entry of consumption.entries) {
-    const item = actor.items.get(entry.itemId);
-    if (!item) continue;
-    const quantity = Math.max(0, item.system.quantity - entry.quantity);
+  for (const entry of entries) {
+    const quantity = Math.max(0, entry.item.system.quantity - entry.quantity);
 
-    if ((quantity === 0) && item.system.uses?.autoDestroy) deletions.push(item.id);
-    else updates.push({ _id: item.id, "system.quantity": quantity });
+    if ((quantity === 0) && entry.item.system.uses?.autoDestroy) deletions.push(entry.item.id);
+    else updates.push({ _id: entry.item.id, "system.quantity": quantity });
   }
 
   if (deletions.length) await actor.deleteEmbeddedDocuments("Item", deletions);

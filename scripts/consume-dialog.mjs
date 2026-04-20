@@ -268,7 +268,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
             <label>${game.i18n.localize("SIMPLE_NUTRITION.Dialog.SelectedLabel")}</label>
             <div class="form-fields">
               <span class="simple-nutrition-consume__summary-value" data-selected-amount>
-                ${foundry.utils.escapeHTML(this.#formatAmount(0))}
+                ${foundry.utils.escapeHTML(formatNutritionAmount(this.type, 0))}
               </span>
             </div>
           </div>
@@ -345,16 +345,6 @@ export default class NutritionConsumeDialog extends Dialog5e {
   }
 
   /**
-   * Format a nutrition amount for display.
-   *
-   * @param {number} value The amount to format.
-   * @returns {string} The formatted amount.
-   */
-  #formatAmount(value) {
-    return formatNutritionAmount(this.type, value);
-  }
-
-  /**
    * Get the currently selected nutrition amount.
    *
    * @returns {number} The selected nutrition amount.
@@ -374,7 +364,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    */
   #updateSelectedAmount() {
     const value = this.element?.querySelector("[data-selected-amount]");
-    if (value) value.textContent = this.#formatAmount(this.#getSelectedAmount());
+    if (value) value.textContent = formatNutritionAmount(this.type, this.#getSelectedAmount());
   }
 
   /**

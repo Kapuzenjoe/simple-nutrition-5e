@@ -14,6 +14,7 @@ Simple Nutrition 5e tracks daily food and water for `dnd5e` characters and appli
 - Tracks food and water separately for each character.
 - Calculates daily requirements from actor size.
 - Shows the current progress directly on the character sheet.
+- Supports Tidy 5e Sheets with compact header buttons.
 - Uses the current `dnd5e` display settings for metric weight and volume where applicable.
 
 ### Actor configuration

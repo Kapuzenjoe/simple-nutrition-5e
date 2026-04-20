@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.3.0
+
+- Added support for Tidy 5e Sheets. Tidy uses smaller icon-only buttons without labels to better fit the Tidy header style. (#2)
+
 ## Version 0.2.1
 
 - Fixed dehydration and malnutrition being removed immediately once the full daily requirement is met.

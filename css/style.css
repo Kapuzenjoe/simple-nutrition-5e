@@ -147,3 +147,13 @@
   margin: 0;
   text-align: center;
 }
+
+.tidy5e-sheet.application .sheet-header-actions [data-simple-nutrition].simple-nutrition__button--ready {
+  background-color: var(--t5e-color-palette-gold-45);
+  border-color: var(--t5e-color-palette-gold-75);
+}
+
+.tidy5e-sheet.application .sheet-header-actions [data-simple-nutrition].simple-nutrition__button--ready > i {
+  color: var(--t5e-color-icon-default);
+  text-shadow: 0 0 .5rem var(--t5e-color-palette-gold-89);
+}
