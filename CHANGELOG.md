@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.3.1
+
+- General cleanup and smaller bug fixes.
+- Reorganized the project folder structure for better maintainability.
+
 ## Version 0.3.0
 
 - Added support for Tidy 5e Sheets. Tidy uses smaller icon-only buttons without labels to better fit the Tidy header style. (#2)

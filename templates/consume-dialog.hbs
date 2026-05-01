@@ -1,0 +1,78 @@
+<div class="simple-nutrition-consume__content">
+    <fieldset class="simple-nutrition-consume__summary">
+        <legend>{{ localize "SIMPLE_NUTRITION.Dialog.SummaryLegend" }}</legend>
+        <div class="form-group">
+            <label>{{ localize "SIMPLE_NUTRITION.Dialog.RequiredLabel" }}</label>
+            <div class="form-fields">
+                <span class="simple-nutrition-consume__summary-value">{{ required }}</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>{{ localize "SIMPLE_NUTRITION.Dialog.SelectedLabel" }}</label>
+            <div class="form-fields">
+                <span class="simple-nutrition-consume__summary-value" data-selected-amount>{{ selected }}</span>
+            </div>
+        </div>
+        {{#if showDaysWithoutFood}}
+        <div class="form-group">
+            <label>{{ localize "SIMPLE_NUTRITION.Dialog.DaysWithoutFoodLabel" }}</label>
+            <div class="form-fields">
+                <span class="simple-nutrition-consume__summary-value">{{ daysWithoutFood }}</span>
+            </div>
+        </div>
+        {{/if}}
+    </fieldset>
+
+    {{#if showFreshWater}}
+    <div class="form-group">
+        <label for="{{ moduleId }}-fresh-water">
+            {{ localize "SIMPLE_NUTRITION.Dialog.FreshWater" }}
+        </label>
+        <div class="form-fields">
+            <input id="{{ moduleId }}-fresh-water" type="checkbox" name="freshWater">
+        </div>
+        <p class="hint">{{ localize "SIMPLE_NUTRITION.Dialog.FreshWaterHint" }}</p>
+    </div>
+    {{/if}}
+
+    {{#if hasNutritionItems}}
+    <fieldset data-item-list>
+        <legend>{{ legend }}</legend>
+        {{#each nutritionItems}}
+        <div class="form-group">
+            <label for="{{ ../moduleId }}-{{ id }}">
+                {{#if img}}<img src="{{ img }}" alt="" width="24" height="24">{{/if}}
+                <span>{{ name }}</span>
+                {{#if container}} <span class="hint">({{ container }})</span>{{/if}}
+            </label>
+            <div class="form-fields">
+                <span class="hint">{{ owned }}{{#if amountLabel}} | {{ amountLabel }}{{/if}}</span>
+                <button type="button" class="unbutton" data-action="stepQuantity" data-item-id="{{ id }}" data-step="-1" aria-label="{{ decreaseLabel }}">
+                    <i class="fa-solid fa-minus" inert></i>
+                </button>
+                <input
+                    id="{{ ../moduleId }}-{{ id }}"
+                    type="number"
+                    name="items.{{ id }}"
+                    min="0"
+                    max="{{ quantity }}"
+                    step="1"
+                    value="0"
+                    readonly
+                >
+                <button type="button" class="unbutton" data-action="stepQuantity" data-item-id="{{ id }}" data-step="1" aria-label="{{ increaseLabel }}">
+                    <i class="fa-solid fa-plus" inert></i>
+                </button>
+            </div>
+        </div>
+        {{/each}}
+    </fieldset>
+    {{/if}}
+
+    <fieldset data-drop-container>
+        <legend>{{ localize "SIMPLE_NUTRITION.Dialog.DropLegend" }}</legend>
+        <div class="drop-area simple-nutrition-consume__drop" data-drop-area>
+            <p class="hint">{{ localize "SIMPLE_NUTRITION.Dialog.DropHint" }}</p>
+        </div>
+    </fieldset>
+</div>

@@ -2,15 +2,15 @@ import {
   LITERS_PER_GALLON,
   MODULE_ID,
   STARVATION_LIMIT
-} from "./constants.mjs";
+} from "../config.mjs";
 import {
   getDefaultNutritionNeeds,
   formatNutritionAmount,
   getNutritionConfig,
   setNutritionConfig
-} from "./nutrition.mjs";
+} from "../nutrition/actor.mjs";
 
-const BaseConfigSheet = globalThis.dnd5e?.applications?.actor?.BaseConfigSheetV2;
+const BaseConfigSheet = game.dnd5e.applications.actor.BaseConfigSheetV2;
 
 const { NumberField } = foundry.data.fields;
 const { convertWeight, defaultUnits } = game.dnd5e.utils;
@@ -86,7 +86,7 @@ export default class NutritionConfig extends BaseConfigSheet {
       starvationLimit: new NumberField({
         nullable: true,
         integer: true,
-        min: 0,
+        min: 1,
         initial: null,
         label: "SIMPLE_NUTRITION.Config.StarvationLimit"
       })
@@ -136,7 +136,7 @@ export default class NutritionConfig extends BaseConfigSheet {
       waterPerDay: (waterPerDay === null)
         ? null
         : (metricVolume ? (waterPerDay / LITERS_PER_GALLON) : waterPerDay),
-      starvationLimit: this.#normalizeNumber(config.starvationLimit, { integer: true })
+      starvationLimit: this.#normalizeNumber(config.starvationLimit, { integer: true, min: 1 })
     });
   }
 
@@ -144,13 +144,13 @@ export default class NutritionConfig extends BaseConfigSheet {
    * Normalize a numeric config value from form submission.
    *
    * @param {unknown} value The submitted value.
-   * @param {{ integer?: boolean }} [options] Normalization options.
+   * @param {{ integer?: boolean, min?: number }} [options] Normalization options.
    * @returns {number|null} The normalized numeric value.
    */
-  #normalizeNumber(value, { integer=false }={}) {
+  #normalizeNumber(value, { integer=false, min=0 }={}) {
     if ((value === null) || (value === undefined) || (value === "")) return null;
     const number = Number(value);
     if (!Number.isFinite(number)) return null;
-    return Math.max(integer ? Math.trunc(number) : number, 0);
+    return Math.max(integer ? Math.trunc(number) : number, min);
   }
 }

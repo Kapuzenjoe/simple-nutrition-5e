@@ -1,5 +1,5 @@
 /**
- * @import { NutritionCandidate, NutritionConfig, NutritionState, NutritionType } from "./types/shared.types.mjs";
+ * @import { NutritionCandidate, NutritionConfig, NutritionState, NutritionType } from "../_types.mjs";
  */
 
 import {
@@ -13,7 +13,7 @@ import {
   STARVATION_LIMIT,
   WATER_ITEM_AMOUNT,
   WATER_NEEDS
-} from "./constants.mjs";
+} from "../config.mjs";
 
 const { convertWeight, formatVolume, formatWeight } = game.dnd5e.utils;
 

@@ -1,5 +1,5 @@
 /**
- * @import { NutritionCandidate, NutritionConsumption, NutritionRestState, NutritionState, NutritionType } from "./types/shared.types.mjs";
+ * @import { NutritionCandidate, NutritionConsumption, NutritionRestState, NutritionState, NutritionType } from "../_types.mjs";
  */
 
 import {
@@ -11,7 +11,7 @@ import {
   MODULE_ID,
   WATER_IDENTIFIERS,
   WATERSKIN_IDENTIFIER
-} from "./constants.mjs";
+} from "../config.mjs";
 import {
   formatNutritionAmount,
   formatNutritionValue,
@@ -21,9 +21,9 @@ import {
   getNutritionState,
   getStarvationLimit,
   setNutritionState
-} from "./nutrition.mjs";
-import NutritionConsumeDialog from "./consume-dialog.mjs";
-import NutritionConfig from "./nutrition-config.mjs";
+} from "./actor.mjs";
+import NutritionConsumeDialog from "../applications/consume-dialog.mjs";
+import NutritionConfig from "../applications/nutrition-config.mjs";
 
 const { createRollLabel } = game.dnd5e.enrichers;
 
@@ -32,13 +32,13 @@ const { createRollLabel } = game.dnd5e.enrichers;
  *
  * @returns {void}
  */
-export function initNutrition() {
+export function initNutritionHooks() {
   // Calendar-driven day changes are intentionally deferred pending dnd5e PR https://github.com/foundryvtt/dnd5e/pull/6233
   Hooks.on("renderCharacterActorSheet", onRenderCharacterActorSheet);
   if (game.modules.get("tidy5e-sheet")?.active) Hooks.once("tidy5e-sheet.ready", registerTidyNutritionContent);
   Hooks.on("dnd5e.preRestCompleted", onPreRestCompleted);
   Hooks.on("dnd5e.restCompleted", onRestCompleted);
-  Hooks.on("renderChatMessageHTML", onRenderRestChatMessage);
+  Hooks.on("dnd5e.renderChatMessage", onRenderRestChatMessage);
 }
 
 /**
@@ -112,6 +112,8 @@ async function promptMalnutritionSave(actor) {
     format: "short",
     icon: true
   };
+  const malnutritionLabel = game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_MALNUTRITION].name);
+  const constitutionLabel = game.i18n.localize(CONFIG.DND5E.abilities.con.label);
   const guidance = await foundry.applications.ux.TextEditor.enrichHTML(
     game.i18n.localize("SIMPLE_NUTRITION.Rest.MalnutritionSaveHint"),
     { async: true }
@@ -129,7 +131,10 @@ async function promptMalnutritionSave(actor) {
 
   return ChatMessage.implementation.create({
     content: `<div class="card-content">${guidance}</div>${request}`,
-    flavor: game.i18n.localize("SIMPLE_NUTRITION.Rest.MalnutritionSave"),
+    flavor: `${malnutritionLabel} ${game.i18n.format("DND5E.SavingThrowDC", {
+      ability: constitutionLabel,
+      dc: 10
+    })}`,
     whisper: game.users.filter(user => actor.testUserPermission(user, "OWNER")),
     speaker: ChatMessage.implementation.getSpeaker({ actor })
   });
@@ -597,72 +602,54 @@ function onRenderRestChatMessage(message, html) {
   const actor = message.getAssociatedActor();
   if (!actor?.testUserPermission(game.user, "OWNER")) return;
 
-  const content = html.querySelector(".message-content");
-  if (!content) return;
+  const card = html.querySelector(".rest-card");
+  if (!card || card.querySelector(".simple-nutrition-chat")) return;
 
-  const render = () => {
-    const card = html.querySelector(".rest-card");
-    if (!card || card.querySelector(".simple-nutrition-chat")) return false;
+  const statuses = [];
+  if (chat.dehydrated) statuses.push(game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_DEHYDRATION].name));
+  if (chat.malnourished) statuses.push(game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_MALNUTRITION].name));
 
-    const statuses = [];
-    if (chat.dehydrated) statuses.push(game.i18n.localize("SIMPLE_NUTRITION.Chat.StatusDehydrated"));
-    if (chat.malnourished) statuses.push(game.i18n.localize("SIMPLE_NUTRITION.Chat.StatusMalnourished"));
-
-    const rows = [
-      {
-        label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"),
-        status: chat.previous.food >= chat.previous.foodRequired
-          ? "full"
-          : (chat.previous.food >= (chat.previous.foodRequired / 2) ? "half" : "none")
-      },
-      {
-        label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"),
-        status: chat.previous.water >= chat.previous.waterRequired
-          ? "full"
-          : (chat.previous.water >= (chat.previous.waterRequired / 2) ? "half" : "none")
-      }
-    ];
-
-    if (chat.starvation > 0) {
-      rows.push({
-        label: game.i18n.localize("SIMPLE_NUTRITION.Chat.StarvationLabel"),
-        value: game.i18n.format("SIMPLE_NUTRITION.Chat.StarvationValue", { days: chat.starvation })
-      });
+  const rows = [
+    {
+      label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"),
+      status: chat.previous.food >= chat.previous.foodRequired
+        ? "full"
+        : (chat.previous.food >= (chat.previous.foodRequired / 2) ? "half" : "none")
+    },
+    {
+      label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"),
+      status: chat.previous.water >= chat.previous.waterRequired
+        ? "full"
+        : (chat.previous.water >= (chat.previous.waterRequired / 2) ? "half" : "none")
     }
+  ];
 
-    if (statuses.length) {
-      rows.push({
-        label: game.i18n.localize("SIMPLE_NUTRITION.Chat.ConditionsLabel"),
-        value: statuses.join(", ")
-      });
-    }
-
-    card.insertAdjacentHTML("beforeend", `
-      <section class="deltas simple-nutrition-chat">
-        <strong class="roboto-condensed-upper">${game.i18n.localize("SIMPLE_NUTRITION.Chat.Title")}</strong>
-        <ul class="unlist">
-          ${rows.map(row => `
-            <li class="delta operation-update">
-              <span class="label">${foundry.utils.escapeHTML(row.label)}</span>
-              <span class="value">
-                ${row.status
-        ? `<i class="fa-solid ${row.status === "full" ? "fa-check" : (row.status === "half" ? "fa-minus" : "fa-xmark")
-        }" aria-hidden="true"></i>`
-        : foundry.utils.escapeHTML(row.value)}
-              </span>
-            </li>
-          `).join("")}
-        </ul>
-      </section>
-    `);
-
-    return true;
-  };
-
-  if (render()) return;
-
-  const observer = new MutationObserver(() => {
-    if (render()) observer.disconnect();
+  if (chat.starvation > 0) rows.push({
+    label: game.i18n.localize("SIMPLE_NUTRITION.Chat.StarvationLabel"),
+    value: game.i18n.format("SIMPLE_NUTRITION.Chat.StarvationValue", { days: chat.starvation })
   });
-  observer.observe(content, { childList: true, subtree: true });
+
+  if (statuses.length) rows.push({
+    label: game.i18n.localize("DND5E.Conditions"),
+    value: statuses.join(", ")
+  });
+
+  card.insertAdjacentHTML("beforeend", `
+    <section class="deltas simple-nutrition-chat">
+      <strong class="roboto-condensed-upper">${game.i18n.localize("SIMPLE_NUTRITION.Chat.Title")}</strong>
+      <ul class="unlist">
+        ${rows.map(row => `
+          <li class="delta operation-update">
+            <span class="label">${foundry.utils.escapeHTML(row.label)}</span>
+            <span class="value">
+              ${row.status
+    ? `<i class="fa-solid ${row.status === "full" ? "fa-check" : (row.status === "half" ? "fa-minus" : "fa-xmark")
+    }" aria-hidden="true"></i>`
+    : foundry.utils.escapeHTML(row.value)}
+            </span>
+          </li>
+        `).join("")}
+      </ul>
+    </section>
+  `);
 }

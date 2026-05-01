@@ -1,4 +1,4 @@
 Hooks.once("init", async () => {
-  const { initNutrition } = await import("./handler.mjs");
-  initNutrition();
+  const { initNutritionHooks } = await import("./nutrition/hooks.mjs");
+  initNutritionHooks();
 });

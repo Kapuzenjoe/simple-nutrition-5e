@@ -58,13 +58,9 @@
     "Chat": {
       "Title": "Nutrition",
       "StarvationLabel": "Days without food",
-      "StarvationValue": "{days}",
-      "ConditionsLabel": "Conditions",
-      "StatusDehydrated": "Dehydrated",
-      "StatusMalnourished": "Malnourished"
+      "StarvationValue": "{days}"
     },
     "Rest": {
-      "MalnutritionSave": "Malnutrition Constitution Save (DC 10)",
       "MalnutritionSaveHint": "On a failed save, manually apply 1 level of &Reference[Exhaustion] and the &Reference[Malnutrition] condition."
     }
   }

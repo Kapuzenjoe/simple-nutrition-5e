@@ -28,7 +28,7 @@
 
 /**
  * @typedef {object} NutritionCandidate
- * @property {string} id The item identifier.
+ * @property {string} id The item document id.
  * @property {string} name The item name.
  * @property {string} img The item image path.
  * @property {number} quantity The available item quantity.
@@ -39,7 +39,7 @@
 
 /**
  * @typedef {object} NutritionConsumptionEntry
- * @property {string} itemId The consumed item identifier.
+ * @property {string} itemId The consumed item document id.
  * @property {number} quantity The quantity consumed from the item.
  */
 

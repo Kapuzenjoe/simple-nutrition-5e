@@ -1,9 +1,9 @@
 /**
- * @import { NutritionCandidate, NutritionConsumption, NutritionType } from "./types/shared.types.mjs";
+ * @import { NutritionCandidate, NutritionConsumption, NutritionType } from "../_types.mjs";
  */
 
-import { MODULE_ID } from "./constants.mjs";
-import { formatNutritionAmount, getNutritionCandidate } from "./nutrition.mjs";
+import { MODULE_ID } from "../config.mjs";
+import { formatNutritionAmount, getNutritionCandidate } from "../nutrition/actor.mjs";
 
 const Dialog5e = game.dnd5e.applications.api.Dialog5e;
 
@@ -55,6 +55,14 @@ export default class NutritionConsumeDialog extends Dialog5e {
     required: "",
     requiredValue: 0,
     type: null
+  };
+
+  /** @inheritDoc */
+  static PARTS = {
+    ...super.PARTS,
+    content: {
+      template: "modules/simple-nutrition-5e/templates/consume-dialog.hbs"
+    }
   };
 
   /**
@@ -146,7 +154,27 @@ export default class NutritionConsumeDialog extends Dialog5e {
    */
   async _prepareContentContext(context, options) {
     context = await super._prepareContentContext(context, options);
-    context.content = this.#renderContent();
+    const legend = game.i18n.localize(this.type === "food"
+      ? "SIMPLE_NUTRITION.Dialog.LegendFood"
+      : "SIMPLE_NUTRITION.Dialog.LegendWater");
+    const nutritionItems = this.items.map(item => ({
+      ...item,
+      owned: game.i18n.format("SIMPLE_NUTRITION.Dialog.Owned", { quantity: item.quantity }),
+      amountLabel: item.amount ? game.i18n.format("SIMPLE_NUTRITION.Dialog.Each", { amount: item.amount }) : null,
+      decreaseLabel: game.i18n.format("SIMPLE_NUTRITION.Dialog.Decrease", { item: item.name }),
+      increaseLabel: game.i18n.format("SIMPLE_NUTRITION.Dialog.Increase", { item: item.name })
+    }));
+
+    context.daysWithoutFood = this.daysWithoutFood;
+    context.hasNutritionItems = nutritionItems.length > 0;
+    context.legend = legend;
+    context.moduleId = MODULE_ID;
+    context.nutritionItems = nutritionItems;
+    context.required = this.required;
+    context.selected = formatNutritionAmount(this.type, 0);
+    context.showDaysWithoutFood = (this.type === "food") && (this.daysWithoutFood > 0);
+    context.showFreshWater = this.type === "water";
+
     return context;
   }
 
@@ -185,117 +213,6 @@ export default class NutritionConsumeDialog extends Dialog5e {
       dropArea.classList.remove("is-dragover");
     });
     dropArea?.addEventListener("drop", event => this.#onDropItem(event));
-  }
-
-  /**
-   * Render the dialog body.
-   *
-   * @returns {string} The rendered dialog body markup.
-   */
-  #renderContent() {
-    const legend = game.i18n.localize(this.type === "food"
-      ? "SIMPLE_NUTRITION.Dialog.LegendFood"
-      : "SIMPLE_NUTRITION.Dialog.LegendWater");
-    const daysWithoutFood = (this.type === "food") && (this.daysWithoutFood > 0);
-    const freshWater = (this.type === "water") ? `
-      <div class="form-group">
-        <label for="${MODULE_ID}-fresh-water">
-          ${game.i18n.localize("SIMPLE_NUTRITION.Dialog.FreshWater")}
-        </label>
-        <div class="form-fields">
-          <input id="${MODULE_ID}-fresh-water" type="checkbox" name="freshWater">
-        </div>
-        <p class="hint">
-          ${game.i18n.localize("SIMPLE_NUTRITION.Dialog.FreshWaterHint")}
-        </p>
-      </div>
-    ` : "";
-
-    const itemRows = this.items.map(item => {
-      const name = foundry.utils.escapeHTML(item.name);
-      const container = item.container ? ` <span class="hint">(${foundry.utils.escapeHTML(item.container)})</span>` : "";
-      const img = item.img ? `<img src="${item.img}" alt="" width="24" height="24">` : "";
-      const details = [game.i18n.format("SIMPLE_NUTRITION.Dialog.Owned", { quantity: item.quantity })];
-      if (item.amount) details.push(game.i18n.format("SIMPLE_NUTRITION.Dialog.Each", { amount: item.amount }));
-      const owned = foundry.utils.escapeHTML(details.join(" | "));
-      const decreaseLabel = foundry.utils.escapeHTML(game.i18n.format("SIMPLE_NUTRITION.Dialog.Decrease", {
-        item: item.name
-      }));
-      const increaseLabel = foundry.utils.escapeHTML(game.i18n.format("SIMPLE_NUTRITION.Dialog.Increase", {
-        item: item.name
-      }));
-
-      return `
-        <div class="form-group">
-          <label for="${MODULE_ID}-${item.id}">
-            ${img}
-            <span>${name}</span>${container}
-          </label>
-          <div class="form-fields">
-            <span class="hint">${owned}</span>
-            <button type="button" class="unbutton" data-action="stepQuantity" data-item-id="${item.id}" data-step="-1" aria-label="${decreaseLabel}">
-              <i class="fa-solid fa-minus" inert></i>
-            </button>
-            <input
-              id="${MODULE_ID}-${item.id}"
-              type="number"
-              name="items.${item.id}"
-              min="0"
-              max="${item.quantity}"
-              step="1"
-              value="0"
-              readonly
-            >
-            <button type="button" class="unbutton" data-action="stepQuantity" data-item-id="${item.id}" data-step="1" aria-label="${increaseLabel}">
-              <i class="fa-solid fa-plus" inert></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    return `
-      <div class="simple-nutrition-consume__content">
-        <fieldset class="simple-nutrition-consume__summary">
-          <legend>${game.i18n.localize("SIMPLE_NUTRITION.Dialog.SummaryLegend")}</legend>
-          <div class="form-group">
-            <label>${game.i18n.localize("SIMPLE_NUTRITION.Dialog.RequiredLabel")}</label>
-            <div class="form-fields">
-              <span class="simple-nutrition-consume__summary-value">${foundry.utils.escapeHTML(this.required)}</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>${game.i18n.localize("SIMPLE_NUTRITION.Dialog.SelectedLabel")}</label>
-            <div class="form-fields">
-              <span class="simple-nutrition-consume__summary-value" data-selected-amount>
-                ${foundry.utils.escapeHTML(formatNutritionAmount(this.type, 0))}
-              </span>
-            </div>
-          </div>
-          ${daysWithoutFood ? `
-            <div class="form-group">
-              <label>${game.i18n.localize("SIMPLE_NUTRITION.Dialog.DaysWithoutFoodLabel")}</label>
-              <div class="form-fields">
-                <span class="simple-nutrition-consume__summary-value">${this.daysWithoutFood}</span>
-              </div>
-            </div>
-          ` : ""}
-        </fieldset>
-        ${freshWater}
-        ${itemRows ? `
-          <fieldset data-item-list>
-            <legend>${legend}</legend>
-            ${itemRows}
-          </fieldset>
-        ` : ""}
-        <fieldset data-drop-container>
-          <legend>${game.i18n.localize("SIMPLE_NUTRITION.Dialog.DropLegend")}</legend>
-          <div class="drop-area simple-nutrition-consume__drop" data-drop-area>
-            <p class="hint">${game.i18n.localize("SIMPLE_NUTRITION.Dialog.DropHint")}</p>
-          </div>
-        </fieldset>
-      </div>
-    `;
   }
 
   /**
