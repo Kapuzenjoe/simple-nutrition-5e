@@ -520,8 +520,6 @@ function onPreRestCompleted(actor, result, config) {
     malnourished = true;
   }
 
-  const recoverExhaustion = !(dehydrated || malnourished);
-
   /** @type {NutritionRestState} */
   const state = {
     starvation,
@@ -530,17 +528,16 @@ function onPreRestCompleted(actor, result, config) {
     saveRequired: !foodHalf && ((current.food > 0) || (starvation < starvationLimit))
   };
 
-  const currentExhaustion = foundry.utils.getProperty(result.clone, EXHAUSTION_PATH) ?? 0;
-  const pendingExhaustion = foundry.utils.getProperty(result.updateData, EXHAUSTION_PATH);
-  let exhaustion = pendingExhaustion ?? currentExhaustion;
-  if (!recoverExhaustion && (pendingExhaustion !== undefined)) {
-    exhaustion -= Math.min(pendingExhaustion - currentExhaustion, 0);
-  }
-  const max = CONFIG.DND5E.conditionTypes.exhaustion.levels ?? 6;
+  if (penalty) {
+    const exhaustion = foundry.utils.getProperty(result.updateData, EXHAUSTION_PATH)
+      ?? foundry.utils.getProperty(result.clone, EXHAUSTION_PATH)
+      ?? 0;
+    const max = CONFIG.DND5E.conditionTypes.exhaustion.levels ?? 6;
 
-  foundry.utils.mergeObject(result.updateData, {
-    [EXHAUSTION_PATH]: Math.clamp(exhaustion + penalty, 0, max)
-  });
+    foundry.utils.mergeObject(result.updateData, {
+      [EXHAUSTION_PATH]: Math.clamp(exhaustion + penalty, 0, max)
+    });
+  }
 
   result[MODULE_ID] = state;
 }
@@ -592,9 +589,9 @@ async function onRestCompleted(actor, result, config) {
  *
  * @param {ChatMessage5e} message The rendered chat message.
  * @param {HTMLElement} html The rendered message HTML.
- * @returns {void}
+ * @returns {Promise<void>} A promise that resolves when the summary has been rendered.
  */
-function onRenderRestChatMessage(message, html) {
+async function onRenderRestChatMessage(message, html) {
   if (!(html instanceof HTMLElement)) return;
   const chat = message.getFlag(MODULE_ID, "restChat");
   if (!chat?.previous) return;
@@ -634,22 +631,19 @@ function onRenderRestChatMessage(message, html) {
     value: statuses.join(", ")
   });
 
-  card.insertAdjacentHTML("beforeend", `
-    <section class="deltas simple-nutrition-chat">
-      <strong class="roboto-condensed-upper">${game.i18n.localize("SIMPLE_NUTRITION.Chat.Title")}</strong>
-      <ul class="unlist">
-        ${rows.map(row => `
-          <li class="delta operation-update">
-            <span class="label">${foundry.utils.escapeHTML(row.label)}</span>
-            <span class="value">
-              ${row.status
-    ? `<i class="fa-solid ${row.status === "full" ? "fa-check" : (row.status === "half" ? "fa-minus" : "fa-xmark")
-    }" aria-hidden="true"></i>`
-    : foundry.utils.escapeHTML(row.value)}
-            </span>
-          </li>
-        `).join("")}
-      </ul>
-    </section>
-  `);
+  const icons = {
+    full: "fa-check",
+    half: "fa-minus",
+    none: "fa-xmark"
+  };
+  const content = await foundry.applications.handlebars.renderTemplate(
+    "modules/simple-nutrition-5e/templates/rest-chat.hbs",
+    {
+      rows: rows.map(row => ({
+        ...row,
+        icon: icons[row.status] ?? null
+      }))
+    }
+  );
+  card.insertAdjacentHTML("beforeend", content);
 }

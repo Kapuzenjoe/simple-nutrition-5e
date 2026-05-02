@@ -1,0 +1,17 @@
+<section class="deltas simple-nutrition-chat">
+    <strong class="roboto-condensed-upper">{{ localize "SIMPLE_NUTRITION.Chat.Title" }}</strong>
+    <ul class="unlist">
+        {{#each rows}}
+        <li class="delta operation-update">
+            <span class="label">{{ label }}</span>
+            <span class="value">
+                {{#if icon}}
+                <i class="fa-solid {{ icon }}" aria-hidden="true"></i>
+                {{else}}
+                {{ value }}
+                {{/if}}
+            </span>
+        </li>
+        {{/each}}
+    </ul>
+</section>

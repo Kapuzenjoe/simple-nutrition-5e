@@ -33,7 +33,6 @@ Simple Nutrition 5e tracks daily food and water for `dnd5e` characters and appli
 - Evaluates nutrition on rests that start a new day.
 - Applies dehydration automatically when less than half the required water was consumed.
 - Tracks consecutive days without food and applies starvation automatically from day 5 onward.
-- Blocks exhaustion recovery while dehydration or malnutrition is active.
 - Adds a short nutrition summary to the resulting rest chat card.
 - Creates a separate Constitution save request when the character ate less than half the required food.
 
