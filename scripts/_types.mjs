@@ -13,6 +13,8 @@
 
 /**
  * @typedef {object} NutritionConfig
+ * @property {boolean} trackFood Whether food tracking is enabled.
+ * @property {boolean} trackWater Whether water tracking is enabled.
  * @property {number|null} foodPerDay The actor-specific daily food requirement in pounds.
  * @property {number|null} waterPerDay The actor-specific daily water requirement in gallons.
  * @property {number|null} starvationLimit The actor-specific starvation threshold in days.

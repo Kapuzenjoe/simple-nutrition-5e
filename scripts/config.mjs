@@ -26,6 +26,8 @@ export const EMPTY_NUTRITION_STATE = {
 };
 
 export const EMPTY_NUTRITION_CONFIG = {
+  trackFood: true,
+  trackWater: true,
   foodPerDay: null,
   waterPerDay: null,
   starvationLimit: null

@@ -12,7 +12,7 @@ import {
 
 const BaseConfigSheet = game.dnd5e.applications.actor.BaseConfigSheetV2;
 
-const { NumberField } = foundry.data.fields;
+const { BooleanField, NumberField } = foundry.data.fields;
 const { convertWeight, defaultUnits } = game.dnd5e.utils;
 
 /**
@@ -64,6 +64,8 @@ export default class NutritionConfig extends BaseConfigSheet {
       ? (game.i18n.has(waterUnitLabelKey) ? game.i18n.localize(waterUnitLabelKey) : "L")
       : "gal";
     context.data = {
+      trackFood: config.trackFood !== false,
+      trackWater: config.trackWater !== false,
       foodPerDay: (config.foodPerDay === null) ? null : convertWeight(config.foodPerDay, "lb", weightUnit),
       waterPerDay: (config.waterPerDay === null)
         ? null
@@ -71,6 +73,12 @@ export default class NutritionConfig extends BaseConfigSheet {
       starvationLimit: config.starvationLimit
     };
     context.fields = {
+      trackFood: new BooleanField({
+        label: "SIMPLE_NUTRITION.Config.TrackFood"
+      }),
+      trackWater: new BooleanField({
+        label: "SIMPLE_NUTRITION.Config.TrackWater"
+      }),
       foodPerDay: new NumberField({
         nullable: true,
         min: 0,
@@ -102,6 +110,8 @@ export default class NutritionConfig extends BaseConfigSheet {
       starvationLimit: defaults.starvation.toLocaleString(game.i18n.lang)
     };
     context.hints = {
+      trackFood: game.i18n.localize("SIMPLE_NUTRITION.Config.TrackFoodHint"),
+      trackWater: game.i18n.localize("SIMPLE_NUTRITION.Config.TrackWaterHint"),
       foodPerDay: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultValue", {
         value: formatNutritionAmount("food", defaults.food)
       }),
@@ -132,6 +142,8 @@ export default class NutritionConfig extends BaseConfigSheet {
     const foodPerDay = this.#normalizeNumber(config.foodPerDay);
     const waterPerDay = this.#normalizeNumber(config.waterPerDay);
     await setNutritionConfig(this.document, {
+      trackFood: config.trackFood !== false,
+      trackWater: config.trackWater !== false,
       foodPerDay: (foodPerDay === null) ? null : convertWeight(foodPerDay, weightUnit, "lb"),
       waterPerDay: (waterPerDay === null)
         ? null

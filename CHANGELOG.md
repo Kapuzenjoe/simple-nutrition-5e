@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.4.0
+
+- Extended the actor configuration menu with options to disable food and/or water tracking. (#3)
+
 ## Version 0.3.1
 
 - Adjusted rest exhaustion handling to better match the D&D rules: *exhaustion caused by dehydration or malnutrition cannot be removed until the character drinks or eats the full daily requirement*, but unrelated exhaustion can still recover normally. For example, a character with 2 unrelated exhaustion levels who takes a long rest but gains 1 dehydration exhaustion now ends at 2 (`2 - 1 + 1`) instead of having the rest recovery blocked. The module now lets `dnd5e` handle existing Dehydration and Malnutrition recovery blocking and only adds new exhaustion when the current day's nutrition intake requires it.

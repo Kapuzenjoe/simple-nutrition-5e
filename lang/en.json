@@ -41,12 +41,20 @@
       "Food": "Food",
       "Water": "Water",
       "Progress": "{current}/{required}",
+      "NotRequired": "N/A",
       "FoodTooltip": "Food consumed today: {current} of {required}",
-      "WaterTooltip": "Water consumed today: {current} of {required}"
+      "WaterTooltip": "Water consumed today: {current} of {required}",
+      "FoodNotRequiredTooltip": "Food is not required for this actor.",
+      "WaterNotRequiredTooltip": "Water is not required for this actor."
     },
     "Config": {
       "Title": "Nutrition",
       "Configure": "Configure Nutrition",
+      "Tracking": "Tracking",
+      "TrackFood": "Track Food",
+      "TrackFoodHint": "Disable food tracking for actors that do not need to eat.",
+      "TrackWater": "Track Water",
+      "TrackWaterHint": "Disable water tracking for actors that do not need to drink.",
       "Requirements": "Daily Needs",
       "OverrideHint": "Leave a field blank to use the actor's size-based default.",
       "FoodPerDay": "Food per Day",

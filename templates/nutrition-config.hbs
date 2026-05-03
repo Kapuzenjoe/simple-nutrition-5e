@@ -1,5 +1,13 @@
 <section class="flexcol">
     <fieldset class="card">
+        <legend>{{ localize "SIMPLE_NUTRITION.Config.Tracking" }}</legend>
+        {{ formField fields.trackFood name="config.trackFood" value=data.trackFood
+                     input=inputs.createCheckboxInput hint=hints.trackFood localize=true rootId=partId }}
+        {{ formField fields.trackWater name="config.trackWater" value=data.trackWater
+                     input=inputs.createCheckboxInput hint=hints.trackWater localize=true rootId=partId }}
+    </fieldset>
+
+    <fieldset class="card">
         <legend>{{ localize "SIMPLE_NUTRITION.Config.Requirements" }}</legend>
         <p class="hint">{{ localize "SIMPLE_NUTRITION.Config.OverrideHint" }}</p>
         {{ formField fields.foodPerDay name="config.foodPerDay" value=data.foodPerDay placeholder=placeholders.foodPerDay

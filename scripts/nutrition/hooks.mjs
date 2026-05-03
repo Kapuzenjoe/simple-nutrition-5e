@@ -17,6 +17,7 @@ import {
   formatNutritionValue,
   getNutritionAmount,
   getNutritionCandidate,
+  getNutritionConfig,
   getNutritionNeeds,
   getNutritionState,
   getStarvationLimit,
@@ -150,23 +151,34 @@ async function promptMalnutritionSave(actor) {
 function trackerHTML(actor, editable, configurable) {
   const state = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
+  const config = getNutritionConfig(actor);
+  const trackFood = config.trackFood !== false;
+  const trackWater = config.trackWater !== false;
   const configTooltip = foundry.utils.escapeHTML(game.i18n.localize("SIMPLE_NUTRITION.Config.Configure"));
-  const foodProgress = game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
-    current: formatNutritionValue("food", state.food),
-    required: formatNutritionValue("food", needs.food)
-  });
-  const waterProgress = game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
-    current: formatNutritionValue("water", state.water),
-    required: formatNutritionValue("water", needs.water)
-  });
-  const foodTooltip = game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
-    current: formatNutritionAmount("food", state.food),
-    required: formatNutritionAmount("food", needs.food)
-  });
-  const waterTooltip = game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
-    current: formatNutritionAmount("water", state.water),
-    required: formatNutritionAmount("water", needs.water)
-  });
+  const foodProgress = trackFood
+    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
+      current: formatNutritionValue("food", state.food),
+      required: formatNutritionValue("food", needs.food)
+    })
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.NotRequired");
+  const waterProgress = trackWater
+    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
+      current: formatNutritionValue("water", state.water),
+      required: formatNutritionValue("water", needs.water)
+    })
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.NotRequired");
+  const foodTooltip = trackFood
+    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
+      current: formatNutritionAmount("food", state.food),
+      required: formatNutritionAmount("food", needs.food)
+    })
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip");
+  const waterTooltip = trackWater
+    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
+      current: formatNutritionAmount("water", state.water),
+      required: formatNutritionAmount("water", needs.water)
+    })
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip");
 
   return `
     <div class="meter-group simple-nutrition">
@@ -188,11 +200,11 @@ function trackerHTML(actor, editable, configurable) {
       <div class="simple-nutrition__row">
         <button
           type="button"
-          class="unbutton simple-nutrition__button ${(state.food >= needs.food) ? "is-active" : "is-inactive"}"
+          class="unbutton simple-nutrition__button ${trackFood ? ((state.food >= needs.food) ? "is-active" : "is-inactive") : "is-disabled"}"
           data-nutrition="food"
           data-tooltip="${foodTooltip}"
           aria-label="${foodTooltip}"
-          ${editable ? "" : "disabled"}
+          ${(editable && trackFood) ? "" : "disabled"}
         >
           <i class="fas fa-drumstick-bite" inert></i>
           <span class="simple-nutrition__label">${game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food")}</span>
@@ -201,11 +213,11 @@ function trackerHTML(actor, editable, configurable) {
 
         <button
           type="button"
-          class="unbutton simple-nutrition__button ${(state.water >= needs.water) ? "is-active" : "is-inactive"}"
+          class="unbutton simple-nutrition__button ${trackWater ? ((state.water >= needs.water) ? "is-active" : "is-inactive") : "is-disabled"}"
           data-nutrition="water"
           data-tooltip="${waterTooltip}"
           aria-label="${waterTooltip}"
-          ${editable ? "" : "disabled"}
+          ${(editable && trackWater) ? "" : "disabled"}
         >
           <i class="fas fa-glass-water" inert></i>
           <span class="simple-nutrition__label">${game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water")}</span>
@@ -226,37 +238,44 @@ function trackerHTML(actor, editable, configurable) {
 function tidyTrackerHTML(actor, editable, configurable) {
   const state = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
+  const config = getNutritionConfig(actor);
+  const trackFood = config.trackFood !== false;
+  const trackWater = config.trackWater !== false;
   const configTooltip = foundry.utils.escapeHTML(game.i18n.localize("SIMPLE_NUTRITION.Config.Configure"));
-  const foodTooltip = game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
-    current: formatNutritionAmount("food", state.food),
-    required: formatNutritionAmount("food", needs.food)
-  });
-  const waterTooltip = game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
-    current: formatNutritionAmount("water", state.water),
-    required: formatNutritionAmount("water", needs.water)
-  });
+  const foodTooltip = trackFood
+    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
+      current: formatNutritionAmount("food", state.food),
+      required: formatNutritionAmount("food", needs.food)
+    })
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip");
+  const waterTooltip = trackWater
+    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
+      current: formatNutritionAmount("water", state.water),
+      required: formatNutritionAmount("water", needs.water)
+    })
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip");
 
   return `
     <button
       type="button"
-      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${(state.food >= needs.food) ? "simple-nutrition__button--ready" : ""}"
+      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${trackFood && (state.food >= needs.food) ? "simple-nutrition__button--ready" : ""} ${trackFood ? "" : "simple-nutrition__button--disabled"}"
       data-simple-nutrition
       data-nutrition="food"
       data-tooltip="${foodTooltip}"
       aria-label="${foodTooltip}"
-      ${editable ? "" : "disabled"}
+      ${(editable && trackFood) ? "" : "disabled"}
     >
       <i class="fas fa-drumstick-bite" inert></i>
     </button>
 
     <button
       type="button"
-      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${(state.water >= needs.water) ? "simple-nutrition__button--ready" : ""}"
+      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${trackWater && (state.water >= needs.water) ? "simple-nutrition__button--ready" : ""} ${trackWater ? "" : "simple-nutrition__button--disabled"}"
       data-simple-nutrition
       data-nutrition="water"
       data-tooltip="${waterTooltip}"
       aria-label="${waterTooltip}"
-      ${editable ? "" : "disabled"}
+      ${(editable && trackWater) ? "" : "disabled"}
     >
       <i class="fas fa-glass-water" inert></i>
     </button>
@@ -364,6 +383,9 @@ function onConfigureNutrition(app, event) {
 async function onToggleNutrition(actor, event) {
   const { nutrition } = event.currentTarget.dataset;
   const isFood = nutrition === "food";
+  const config = getNutritionConfig(actor);
+  if (isFood ? (config.trackFood === false) : (config.trackWater === false)) return;
+
   const state = getNutritionState(actor);
   const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
   const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
@@ -499,23 +521,26 @@ function onPreRestCompleted(actor, result, config) {
 
   const current = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
+  const nutritionConfig = getNutritionConfig(actor);
+  const trackFood = nutritionConfig.trackFood !== false;
+  const trackWater = nutritionConfig.trackWater !== false;
   const starvationLimit = getStarvationLimit(actor);
-  const starvation = current.food > 0 ? 0 : (current.starvation + 1);
-  const foodHalf = current.food >= (needs.food / 2);
-  const foodFull = current.food >= needs.food;
-  const waterHalf = current.water >= (needs.water / 2);
-  const waterFull = current.water >= needs.water;
+  const starvation = trackFood ? (current.food > 0 ? 0 : (current.starvation + 1)) : 0;
+  const foodHalf = !trackFood || (current.food >= (needs.food / 2));
+  const foodFull = !trackFood || (current.food >= needs.food);
+  const waterHalf = !trackWater || (current.water >= (needs.water / 2));
+  const waterFull = !trackWater || (current.water >= needs.water);
 
   let penalty = 0;
-  let dehydrated = actor.hasConditionEffect(CONDITION_EFFECT_DEHYDRATED) && !waterFull;
-  let malnourished = actor.hasConditionEffect(CONDITION_EFFECT_MALNOURISHED) && !foodFull;
+  let dehydrated = trackWater && actor.hasConditionEffect(CONDITION_EFFECT_DEHYDRATED) && !waterFull;
+  let malnourished = trackFood && actor.hasConditionEffect(CONDITION_EFFECT_MALNOURISHED) && !foodFull;
 
-  if (!waterHalf) {
+  if (trackWater && !waterHalf) {
     penalty += 1;
     dehydrated = true;
   }
 
-  if ((current.food === 0) && (starvation >= starvationLimit)) {
+  if (trackFood && (current.food === 0) && (starvation >= starvationLimit)) {
     penalty += 1;
     malnourished = true;
   }
@@ -525,7 +550,7 @@ function onPreRestCompleted(actor, result, config) {
     starvation,
     dehydrated,
     malnourished,
-    saveRequired: !foodHalf && ((current.food > 0) || (starvation < starvationLimit))
+    saveRequired: trackFood && !foodHalf && ((current.food > 0) || (starvation < starvationLimit))
   };
 
   if (penalty) {
@@ -557,6 +582,9 @@ async function onRestCompleted(actor, result, config) {
   if (!state) return;
   const previous = getNutritionState(actor);
   const needs = getNutritionNeeds(actor);
+  const nutritionConfig = getNutritionConfig(actor);
+  const trackFood = nutritionConfig.trackFood !== false;
+  const trackWater = nutritionConfig.trackWater !== false;
 
   await setNutritionState(actor, {
     food: 0,
@@ -569,13 +597,15 @@ async function onRestCompleted(actor, result, config) {
   await actor.toggleStatusEffect(CONDITION_DEHYDRATION, { active: state.dehydrated });
   await actor.toggleStatusEffect(CONDITION_MALNUTRITION, { active: state.malnourished });
 
-  if (result.message) await result.message.setFlag(MODULE_ID, "restChat", {
+  if (result.message && (trackFood || trackWater)) await result.message.setFlag(MODULE_ID, "restChat", {
     previous: {
       food: previous.food,
       water: previous.water,
       foodRequired: needs.food,
       waterRequired: needs.water
     },
+    trackFood,
+    trackWater,
     starvation: state.starvation,
     dehydrated: state.dehydrated,
     malnourished: state.malnourished
@@ -605,21 +635,28 @@ async function onRenderRestChatMessage(message, html) {
   const statuses = [];
   if (chat.dehydrated) statuses.push(game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_DEHYDRATION].name));
   if (chat.malnourished) statuses.push(game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_MALNUTRITION].name));
+  const trackFood = chat.trackFood !== false;
+  const trackWater = chat.trackWater !== false;
 
-  const rows = [
-    {
+  const rows = [];
+
+  if (trackFood) {
+    rows.push({
       label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"),
       status: chat.previous.food >= chat.previous.foodRequired
         ? "full"
         : (chat.previous.food >= (chat.previous.foodRequired / 2) ? "half" : "none")
-    },
-    {
+    });
+  }
+
+  if (trackWater) {
+    rows.push({
       label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"),
       status: chat.previous.water >= chat.previous.waterRequired
         ? "full"
         : (chat.previous.water >= (chat.previous.waterRequired / 2) ? "half" : "none")
-    }
-  ];
+    });
+  }
 
   if (chat.starvation > 0) rows.push({
     label: game.i18n.localize("SIMPLE_NUTRITION.Chat.StarvationLabel"),
@@ -630,6 +667,8 @@ async function onRenderRestChatMessage(message, html) {
     label: game.i18n.localize("DND5E.Conditions"),
     value: statuses.join(", ")
   });
+
+  if (!rows.length) return;
 
   const icons = {
     full: "fa-check",
