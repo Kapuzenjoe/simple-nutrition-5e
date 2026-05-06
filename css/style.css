@@ -39,8 +39,8 @@
 }
 
 .dnd5e2 .simple-nutrition__button.is-active {
-  background: rgba(184, 156, 98, 0.16);
-  box-shadow: 0 0 0 1px rgba(184, 156, 98, 0.35) inset;
+  background: color-mix(in srgb, var(--dnd5e-color-gold) 16%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dnd5e-color-gold) 35%, transparent) inset;
 }
 
 .dnd5e2 .simple-nutrition__button.is-inactive {

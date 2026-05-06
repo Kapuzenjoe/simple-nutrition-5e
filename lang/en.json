@@ -18,6 +18,8 @@
       "DaysWithoutFoodLabel": "Days without food",
       "FreshWater": "Fresh Water Source Available",
       "FreshWaterHint": "Drink from a fresh water source instead of consuming stored water.",
+      "FreeFood": "Free Food Source Available",
+      "FreeFoodHint": "Eat from a free food source instead of consuming stored rations.",
       "RequiredLabel": "Required",
       "SelectedLabel": "Selected",
       "Each": "{amount} each",

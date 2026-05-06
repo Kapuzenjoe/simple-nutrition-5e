@@ -40,7 +40,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     }, {
       action: "cancel",
       icon: "fa-solid fa-times",
-      label: "Cancel",
+      label: game.i18n.localize("Cancel"),
       type: "button"
     }],
     daysWithoutFood: 0,
@@ -101,6 +101,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    */
   #formState = {
     freshWater: false,
+    freeFood: false,
     quantities: {}
   };
 
@@ -174,6 +175,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     context.selected = formatNutritionAmount(this.type, 0);
     context.showDaysWithoutFood = (this.type === "food") && (this.daysWithoutFood > 0);
     context.showFreshWater = this.type === "water";
+    context.showFreeFood = this.type === "food";
 
     return context;
   }
@@ -197,6 +199,12 @@ export default class NutritionConsumeDialog extends Dialog5e {
 
     this.element.querySelector("[name=freshWater]")?.addEventListener("change", event => {
       this.#formState.freshWater = event.currentTarget.checked;
+      this.#toggleItemSelection();
+      this.#updateSelectedAmount();
+    });
+
+    this.element.querySelector("[name=freeFood]")?.addEventListener("change", event => {
+      this.#formState.freeFood = event.currentTarget.checked;
       this.#toggleItemSelection();
       this.#updateSelectedAmount();
     });
@@ -243,6 +251,8 @@ export default class NutritionConsumeDialog extends Dialog5e {
   #restoreFormState() {
     const freshWater = this.element.querySelector("[name=freshWater]");
     if (freshWater) freshWater.checked = this.#formState.freshWater;
+    const freeFood = this.element.querySelector("[name=freeFood]");
+    if (freeFood) freeFood.checked = this.#formState.freeFood;
 
     for (const input of this.element.querySelectorAll("[name^='items.']")) {
       const itemId = input.name.slice(6);
@@ -256,7 +266,8 @@ export default class NutritionConsumeDialog extends Dialog5e {
    * @returns {void}
    */
   #toggleItemSelection() {
-    const disabled = (this.type === "water") && this.#formState.freshWater;
+    const disabled = ((this.type === "water") && this.#formState.freshWater)
+      || ((this.type === "food") && this.#formState.freeFood);
     this.element.querySelector("[data-item-list]")?.toggleAttribute("disabled", disabled);
     this.element.querySelector("[data-drop-container]")?.classList.toggle("is-disabled", disabled);
   }
@@ -268,6 +279,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    */
   #getSelectedAmount() {
     if (this.type === "water" && this.#formState.freshWater) return this.requiredValue;
+    if (this.type === "food" && this.#formState.freeFood) return this.requiredValue;
 
     return this.items.reduce((total, item) => {
       return total + ((this.#formState.quantities[item.id] ?? 0) * item.value);
@@ -342,6 +354,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    */
   static async #handleFormSubmission(event, form, formData) {
     const freshWater = (this.type === "water") && Boolean(formData.object.freshWater);
+    const freeFood = (this.type === "food") && Boolean(formData.object.freeFood);
     const entries = Object.entries(formData.object).reduce((result, [key, quantity]) => {
       if (!key.startsWith("items.")) return result;
 
@@ -356,7 +369,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
       return result;
     }, []);
 
-    if (!entries.length && !freshWater) {
+    if (!entries.length && !freshWater && !freeFood) {
       ui.notifications.warn(game.i18n.localize(this.type === "food"
         ? "SIMPLE_NUTRITION.Dialog.WarningSelectFood"
         : "SIMPLE_NUTRITION.Dialog.WarningSelectWater"));
@@ -377,7 +390,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
       }
     }
 
-    this.#result = { type: this.type, entries, freshWater };
+    this.#result = { type: this.type, entries, freshWater, freeFood };
     await this.close({ [MODULE_ID]: { submitted: true } });
   }
 

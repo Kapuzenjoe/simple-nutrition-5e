@@ -127,16 +127,13 @@ export default class NutritionConfig extends BaseConfigSheet {
   }
 
   /** @override */
-  _prepareSubmitData(event, form, formData, updateData) {
-    const submitData = foundry.utils.expandObject(formData.object);
-    if (updateData) foundry.utils.mergeObject(submitData, updateData, { inplace: true });
-    return submitData;
+  _prepareSubmitData(event, form, formData) {
+    return foundry.utils.expandObject(formData.object);
   }
 
   /** @inheritDoc */
   async _processSubmitData(event, form, submitData) {
-    const data = submitData ?? form;
-    const config = data?.config ?? {};
+    const config = submitData.config ?? {};
     const weightUnit = defaultUnits("weight");
     const metricVolume = game.settings.get("dnd5e", "metricVolumeUnits");
     const foodPerDay = this.#normalizeNumber(config.foodPerDay);

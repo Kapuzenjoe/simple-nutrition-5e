@@ -35,6 +35,18 @@
     </div>
     {{/if}}
 
+    {{#if showFreeFood}}
+    <div class="form-group">
+        <label for="{{ moduleId }}-free-food">
+            {{ localize "SIMPLE_NUTRITION.Dialog.FreeFood" }}
+        </label>
+        <div class="form-fields">
+            <input id="{{ moduleId }}-free-food" type="checkbox" name="freeFood">
+        </div>
+        <p class="hint">{{ localize "SIMPLE_NUTRITION.Dialog.FreeFoodHint" }}</p>
+    </div>
+    {{/if}}
+
     {{#if hasNutritionItems}}
     <fieldset data-item-list>
         <legend>{{ legend }}</legend>

@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.4.1
+
+- Added a free food source option to the food consumption dialog for situations where a character eats without spending items (e.g. tavern meal, buffet).
+- Fixed starvation counter not advancing when the character consumed less than a full day's ration.
+
 ## Version 0.4.0
 
 - Extended the actor configuration menu with options to disable food and/or water tracking. (#3)

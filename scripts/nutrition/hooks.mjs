@@ -26,8 +26,6 @@ import {
 import NutritionConsumeDialog from "../applications/consume-dialog.mjs";
 import NutritionConfig from "../applications/nutrition-config.mjs";
 
-const { createRollLabel } = game.dnd5e.enrichers;
-
 /**
  * Register all nutrition hooks.
  *
@@ -73,10 +71,12 @@ async function consumeNutrition(actor, nutrition) {
     if (item) result.push({ item, quantity: entry.quantity });
     return result;
   }, []);
-  const consumed = consumption.freshWater ? needs.water : entries.reduce((total, entry) => {
+  const consumed = consumption.freshWater ? needs.water
+    : consumption.freeFood ? needs.food
+    : entries.reduce((total, entry) => {
     return total + (getNutritionAmount(actor, nutrition, entry.item) * entry.quantity);
   }, 0);
-  if (entries.length && !consumption.freshWater) await consumeSelectedItems(actor, entries);
+  if (entries.length && !consumption.freshWater && !consumption.freeFood) await consumeSelectedItems(actor, entries);
 
   const amount = state[nutrition] + consumed;
   const conditionRemoved = (amount >= needs[nutrition]) && actor.hasConditionEffect(conditionEffect);
@@ -99,6 +99,7 @@ async function consumeNutrition(actor, nutrition) {
  * @returns {Promise<ChatMessage5e>} A promise that resolves to the created chat message.
  */
 async function promptMalnutritionSave(actor) {
+  const { createRollLabel } = game.dnd5e.enrichers;
   const dataset = {
     action: "rollRequest",
     type: "save",
@@ -167,18 +168,18 @@ function trackerHTML(actor, editable, configurable) {
       required: formatNutritionValue("water", needs.water)
     })
     : game.i18n.localize("SIMPLE_NUTRITION.Tracker.NotRequired");
-  const foodTooltip = trackFood
+  const foodTooltip = foundry.utils.escapeHTML(trackFood
     ? game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
       current: formatNutritionAmount("food", state.food),
       required: formatNutritionAmount("food", needs.food)
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip");
-  const waterTooltip = trackWater
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip"));
+  const waterTooltip = foundry.utils.escapeHTML(trackWater
     ? game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
       current: formatNutritionAmount("water", state.water),
       required: formatNutritionAmount("water", needs.water)
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip");
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip"));
 
   return `
     <div class="meter-group simple-nutrition">
@@ -242,18 +243,18 @@ function tidyTrackerHTML(actor, editable, configurable) {
   const trackFood = config.trackFood !== false;
   const trackWater = config.trackWater !== false;
   const configTooltip = foundry.utils.escapeHTML(game.i18n.localize("SIMPLE_NUTRITION.Config.Configure"));
-  const foodTooltip = trackFood
+  const foodTooltip = foundry.utils.escapeHTML(trackFood
     ? game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
       current: formatNutritionAmount("food", state.food),
       required: formatNutritionAmount("food", needs.food)
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip");
-  const waterTooltip = trackWater
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip"));
+  const waterTooltip = foundry.utils.escapeHTML(trackWater
     ? game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
       current: formatNutritionAmount("water", state.water),
       required: formatNutritionAmount("water", needs.water)
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip");
+    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip"));
 
   return `
     <button
@@ -304,13 +305,12 @@ function tidyTrackerHTML(actor, editable, configurable) {
  */
 function onRenderCharacterActorSheet(app, html) {
   const actor = app.actor;
-  if (actor.type !== "character") return;
   if (html.querySelector(".simple-nutrition")) return;
 
   const anchor = html.querySelector(".stats .meter-group:last-of-type");
   if (!anchor) return;
 
-  const configurable = app.isEditable && !!(app.isEditMode ?? (app._mode === app.constructor.MODES?.EDIT));
+  const configurable = app.isEditable && !!(app.isEditMode ?? app.isEditable);
   anchor.insertAdjacentHTML("afterend", trackerHTML(actor, app.isEditable, configurable));
 
   for (const button of html.querySelectorAll(".simple-nutrition [data-nutrition]")) {
@@ -525,7 +525,7 @@ function onPreRestCompleted(actor, result, config) {
   const trackFood = nutritionConfig.trackFood !== false;
   const trackWater = nutritionConfig.trackWater !== false;
   const starvationLimit = getStarvationLimit(actor);
-  const starvation = trackFood ? (current.food > 0 ? 0 : (current.starvation + 1)) : 0;
+  const starvation = trackFood ? (current.food >= needs.food ? 0 : (current.starvation + 1)) : 0;
   const foodHalf = !trackFood || (current.food >= (needs.food / 2));
   const foodFull = !trackFood || (current.food >= needs.food);
   const waterHalf = !trackWater || (current.water >= (needs.water / 2));

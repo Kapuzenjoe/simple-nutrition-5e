@@ -15,8 +15,6 @@ import {
   WATER_NEEDS
 } from "../config.mjs";
 
-const { convertWeight, formatVolume, formatWeight } = game.dnd5e.utils;
-
 /**
  * Get the stored nutrition flag for an actor.
  *
@@ -133,7 +131,7 @@ export function getStarvationLimit(actor) {
 export function formatNutritionValue(type, value) {
   if (type === "food") {
     const unit = game.dnd5e.utils.defaultUnits("weight");
-    return convertWeight(value, "lb", unit).toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
+    return game.dnd5e.utils.convertWeight(value, "lb", unit).toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
   }
   if (game.settings.get("dnd5e", "metricVolumeUnits")) {
     return (value * LITERS_PER_GALLON).toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
@@ -151,13 +149,13 @@ export function formatNutritionValue(type, value) {
 export function formatNutritionAmount(type, value) {
   if (type === "food") {
     const unit = game.dnd5e.utils.defaultUnits("weight");
-    return formatWeight(convertWeight(value, "lb", unit), unit, {
+    return game.dnd5e.utils.formatWeight(game.dnd5e.utils.convertWeight(value, "lb", unit), unit, {
       maximumFractionDigits: 3,
       unitDisplay: "short"
     });
   }
   if (game.settings.get("dnd5e", "metricVolumeUnits")) {
-    return formatVolume(value * LITERS_PER_GALLON, "liter", {
+    return game.dnd5e.utils.formatVolume(value * LITERS_PER_GALLON, "liter", {
       maximumFractionDigits: 3,
       unitDisplay: "short"
     });
@@ -176,7 +174,7 @@ export function formatNutritionAmount(type, value) {
  */
 function getFoodItemAmount(actor, item) {
   if (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) return getNutritionNeeds(actor).food;
-  return convertWeight(item.system.weight.value, item.system.weight.units, "lb");
+  return game.dnd5e.utils.convertWeight(item.system.weight.value, item.system.weight.units, "lb");
 }
 
 /**
