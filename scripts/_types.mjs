@@ -18,6 +18,7 @@
  * @property {number|null} foodPerDay The actor-specific daily food requirement in pounds.
  * @property {number|null} waterPerDay The actor-specific daily water requirement in gallons.
  * @property {number|null} starvationLimit The actor-specific starvation threshold in days.
+ * @property {number|null} malnutritionDC The actor-specific DC for the Constitution saving throw against malnutrition.
  */
 
 /**
@@ -50,4 +51,5 @@
  * @property {NutritionType} type The nutrition type being consumed.
  * @property {NutritionConsumptionEntry[]} entries The selected item consumption entries.
  * @property {boolean} [freshWater] Whether the actor drinks from a fresh water source.
+ * @property {boolean} [freeFood] Whether the actor eats from a free food source.
  */

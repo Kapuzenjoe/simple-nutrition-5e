@@ -63,15 +63,17 @@
       "WaterPerDay": "Water per Day",
       "StarvationLimit": "Days Without Food",
       "DefaultValue": "Default: {value}",
-      "DefaultDays": "Default: {days} days"
+      "DefaultDays": "Default: {days} days",
+      "SaveDC": "Save DC",
+      "MalnutritionDCHint": "Constitution saving throw DC when insufficient food is consumed."
     },
     "Chat": {
       "Title": "Nutrition",
-      "StarvationLabel": "Days without food",
-      "StarvationValue": "{days}"
+      "StarvationLabel": "Days without food"
     },
     "Rest": {
-      "MalnutritionSaveHint": "On a failed save, manually apply 1 level of &Reference[Exhaustion] and the &Reference[Malnutrition] condition."
+      "MalnutritionSaveHint": "On a failed save, use the button below to apply 1 level of &Reference[exhaustion apply=false] and the &Reference[malnutrition apply=false] condition.",
+      "MalnutritionApply": "Apply Malnutrition"
     }
   }
 }

@@ -1,7 +1,9 @@
 # Changelog
 
-## Version 0.4.1
+## Version 0.5.0
 
+- The malnutrition saving throw chat message now includes an "Apply Malnutrition" button that directly applies 1 level of Exhaustion and the Malnutrition condition.
+- The malnutrition saving throw DC is now configurable per actor. A new "Save DC" field in the nutrition configuration menu overrides the default DC 10 Constitution saving throw.
 - Added a free food source option to the food consumption dialog for situations where a character eats without spending items (e.g. tavern meal, buffet).
 - Fixed starvation counter not advancing when the character consumed less than a full day's ration.
 

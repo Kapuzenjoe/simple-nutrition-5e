@@ -1,10 +1,11 @@
 import {
+  FOOD_NEEDS,
   LITERS_PER_GALLON,
   MODULE_ID,
-  STARVATION_LIMIT
+  STARVATION_LIMIT,
+  WATER_NEEDS
 } from "../config.mjs";
 import {
-  getDefaultNutritionNeeds,
   formatNutritionAmount,
   getNutritionConfig,
   setNutritionConfig
@@ -50,8 +51,10 @@ export default class NutritionConfig extends BaseConfigSheet {
   async _preparePartContext(partId, context, options) {
     context = await super._preparePartContext(partId, context, options);
 
+    const size = this.document.system.traits.size;
     const defaults = {
-      ...getDefaultNutritionNeeds(this.document),
+      food: FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
+      water: WATER_NEEDS[size] ?? WATER_NEEDS.med,
       starvation: STARVATION_LIMIT
     };
     const config = getNutritionConfig(this.document);
@@ -70,7 +73,8 @@ export default class NutritionConfig extends BaseConfigSheet {
       waterPerDay: (config.waterPerDay === null)
         ? null
         : (metricVolume ? (config.waterPerDay * LITERS_PER_GALLON) : config.waterPerDay),
-      starvationLimit: config.starvationLimit
+      starvationLimit: config.starvationLimit,
+      malnutritionDC: config.malnutritionDC
     };
     context.fields = {
       trackFood: new BooleanField({
@@ -97,6 +101,13 @@ export default class NutritionConfig extends BaseConfigSheet {
         min: 1,
         initial: null,
         label: "SIMPLE_NUTRITION.Config.StarvationLimit"
+      }),
+      malnutritionDC: new NumberField({
+        nullable: true,
+        integer: true,
+        min: 1,
+        initial: null,
+        label: "SIMPLE_NUTRITION.Config.SaveDC"
       })
     };
     context.placeholders = {
@@ -107,6 +118,7 @@ export default class NutritionConfig extends BaseConfigSheet {
         game.i18n.lang,
         { maximumFractionDigits: 3 }
       ),
+      malnutritionDC: (10).toLocaleString(game.i18n.lang),
       starvationLimit: defaults.starvation.toLocaleString(game.i18n.lang)
     };
     context.hints = {
@@ -118,6 +130,7 @@ export default class NutritionConfig extends BaseConfigSheet {
       waterPerDay: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultValue", {
         value: formatNutritionAmount("water", defaults.water)
       }),
+      malnutritionDC: game.i18n.localize("SIMPLE_NUTRITION.Config.MalnutritionDCHint"),
       starvationLimit: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultDays", {
         days: context.placeholders.starvationLimit
       })
@@ -145,7 +158,8 @@ export default class NutritionConfig extends BaseConfigSheet {
       waterPerDay: (waterPerDay === null)
         ? null
         : (metricVolume ? (waterPerDay / LITERS_PER_GALLON) : waterPerDay),
-      starvationLimit: this.#normalizeNumber(config.starvationLimit, { integer: true, min: 1 })
+      starvationLimit: this.#normalizeNumber(config.starvationLimit, { integer: true, min: 1 }),
+      malnutritionDC: this.#normalizeNumber(config.malnutritionDC, { integer: true, min: 1 })
     });
   }
 

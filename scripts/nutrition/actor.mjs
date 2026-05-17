@@ -10,7 +10,6 @@ import {
   MAGICAL_BERRIES_IDENTIFIER,
   MODULE_ID,
   NUTRITION_FLAG,
-  STARVATION_LIMIT,
   WATER_ITEM_AMOUNT,
   WATER_NEEDS
 } from "../config.mjs";
@@ -25,8 +24,9 @@ export function getNutritionFlag(actor) {
   const flag = actor.getFlag(MODULE_ID, NUTRITION_FLAG) ?? {};
   const { config, ...state } = flag;
   return {
-    ...foundry.utils.mergeObject(EMPTY_NUTRITION_STATE, state, { inplace: false }),
-    config: foundry.utils.mergeObject(EMPTY_NUTRITION_CONFIG, config ?? {}, { inplace: false })
+    ...EMPTY_NUTRITION_STATE,
+    ...state,
+    config: { ...EMPTY_NUTRITION_CONFIG, ...(config ?? {}) }
   };
 }
 
@@ -95,30 +95,6 @@ export function getNutritionNeeds(actor) {
     food: config.foodPerDay ?? FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
     water: config.waterPerDay ?? WATER_NEEDS[size] ?? WATER_NEEDS.med
   };
-}
-
-/**
- * Get the default daily food and water requirements for an actor's size.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {{ food: number, water: number }} The default food and water amounts.
- */
-export function getDefaultNutritionNeeds(actor) {
-  const size = actor.system.traits.size;
-  return {
-    food: FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
-    water: WATER_NEEDS[size] ?? WATER_NEEDS.med
-  };
-}
-
-/**
- * Get the starvation limit for an actor.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {number} The number of days without food before penalties apply.
- */
-export function getStarvationLimit(actor) {
-  return getNutritionConfig(actor).starvationLimit ?? STARVATION_LIMIT;
 }
 
 /**

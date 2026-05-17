@@ -9,6 +9,7 @@ import {
   CONDITION_MALNUTRITION,
   EXHAUSTION_PATH,
   MODULE_ID,
+  STARVATION_LIMIT,
   WATER_IDENTIFIERS,
   WATERSKIN_IDENTIFIER
 } from "../config.mjs";
@@ -20,7 +21,6 @@ import {
   getNutritionConfig,
   getNutritionNeeds,
   getNutritionState,
-  getStarvationLimit,
   setNutritionState
 } from "./actor.mjs";
 import NutritionConsumeDialog from "../applications/consume-dialog.mjs";
@@ -38,6 +38,7 @@ export function initNutritionHooks() {
   Hooks.on("dnd5e.preRestCompleted", onPreRestCompleted);
   Hooks.on("dnd5e.restCompleted", onRestCompleted);
   Hooks.on("dnd5e.renderChatMessage", onRenderRestChatMessage);
+  Hooks.on("dnd5e.renderChatMessage", onRenderMalnutritionSaveMessage);
 }
 
 /**
@@ -50,7 +51,8 @@ export function initNutritionHooks() {
 async function consumeNutrition(actor, nutrition) {
   const isFood = nutrition === "food";
   const state = getNutritionState(actor);
-  const items = getConsumableItems(actor, nutrition);
+  const items = (nutrition === "food" ? getFoodCandidates(actor) : getWaterCandidates(actor))
+    .map(item => getNutritionCandidate(actor, nutrition, item));
   const needs = getNutritionNeeds(actor);
   const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
   const conditionEffect = isFood ? CONDITION_EFFECT_MALNOURISHED : CONDITION_EFFECT_DEHYDRATED;
@@ -98,19 +100,19 @@ async function consumeNutrition(actor, nutrition) {
  * @param {Actor5e} actor The actor that must roll the save.
  * @returns {Promise<ChatMessage5e>} A promise that resolves to the created chat message.
  */
-async function promptMalnutritionSave(actor) {
+async function promptMalnutritionSave(actor, dc) {
   const { createRollLabel } = game.dnd5e.enrichers;
   const dataset = {
     action: "rollRequest",
     type: "save",
     ability: "con",
-    dc: 10,
+    dc,
     visibility: "all"
   };
   const config = {
     type: "save",
     ability: "con",
-    dc: 10,
+    dc,
     format: "short",
     icon: true
   };
@@ -120,14 +122,22 @@ async function promptMalnutritionSave(actor) {
     game.i18n.localize("SIMPLE_NUTRITION.Rest.MalnutritionSaveHint"),
     { async: true }
   );
+  const applyLabel = `<i class="fa-solid fa-heart-circle-exclamation"></i> ${game.i18n.localize("SIMPLE_NUTRITION.Rest.MalnutritionApply")}`;
   const request = await foundry.applications.handlebars.renderTemplate(
     "systems/dnd5e/templates/chat/roll-request-card.hbs",
     {
-      buttons: [{
-        dataset,
-        buttonLabel: createRollLabel(config),
-        hiddenLabel: createRollLabel({ ...config, hideDC: true })
-      }]
+      buttons: [
+        {
+          dataset,
+          buttonLabel: createRollLabel(config),
+          hiddenLabel: createRollLabel({ ...config, hideDC: true })
+        },
+        {
+          dataset: { action: "applyMalnutritionFailure" },
+          buttonLabel: applyLabel,
+          hiddenLabel: applyLabel
+        }
+      ]
     }
   );
 
@@ -135,11 +145,45 @@ async function promptMalnutritionSave(actor) {
     content: `<div class="card-content">${guidance}</div>${request}`,
     flavor: `${malnutritionLabel} ${game.i18n.format("DND5E.SavingThrowDC", {
       ability: constitutionLabel,
-      dc: 10
+      dc
     })}`,
     whisper: game.users.filter(user => actor.testUserPermission(user, "OWNER")),
-    speaker: ChatMessage.implementation.getSpeaker({ actor })
+    speaker: ChatMessage.implementation.getSpeaker({ actor }),
+    flags: { [MODULE_ID]: { malnutritionSave: { actorUuid: actor.uuid } } }
   });
+}
+
+/**
+ * Attach the failed-save button handler on a malnutrition save chat message.
+ *
+ * @param {ChatMessage5e} message The rendered chat message.
+ * @param {HTMLElement} html The rendered message HTML.
+ * @returns {void}
+ */
+function onRenderMalnutritionSaveMessage(message, html) {
+  const flag = message.getFlag(MODULE_ID, "malnutritionSave");
+  if (!flag) return;
+  const button = html.querySelector("[data-action='applyMalnutritionFailure']");
+  if (!button) return;
+  if (flag.applied) { button.disabled = true; return; }
+  button.addEventListener("click", () => onApplyMalnutritionFailure(message, flag));
+}
+
+/**
+ * Apply exhaustion and malnutrition condition after a failed saving throw.
+ *
+ * @param {ChatMessage5e} message The originating chat message.
+ * @param {{ actorUuid: string }} flag The malnutrition save flag data.
+ * @returns {Promise<void>}
+ */
+async function onApplyMalnutritionFailure(message, flag) {
+  const actor = await fromUuid(flag.actorUuid);
+  if (!actor?.testUserPermission(game.user, "OWNER")) return;
+  const exhaustion = foundry.utils.getProperty(actor, EXHAUSTION_PATH) ?? 0;
+  const max = CONFIG.DND5E.conditionTypes.exhaustion.levels ?? 6;
+  await actor.update({ [EXHAUSTION_PATH]: Math.clamp(exhaustion + 1, 0, max) });
+  await actor.toggleStatusEffect(CONDITION_MALNUTRITION, { active: true });
+  await message.setFlag(MODULE_ID, "malnutritionSave", { ...flag, applied: true });
 }
 
 /**
@@ -439,18 +483,6 @@ async function onToggleNutrition(actor, event) {
 }
 
 /**
- * Get all valid consumable items for a nutrition type.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @param {NutritionType} type The nutrition type to collect.
- * @returns {NutritionCandidate[]} The available consumable candidates.
- */
-function getConsumableItems(actor, type) {
-  const items = (type === "food") ? getFoodCandidates(actor) : getWaterCandidates(actor);
-  return items.map(item => getNutritionCandidate(actor, type, item));
-}
-
-/**
  * Get all valid food items on an actor.
  *
  * @param {Actor5e} actor The actor to inspect.
@@ -524,7 +556,7 @@ function onPreRestCompleted(actor, result, config) {
   const nutritionConfig = getNutritionConfig(actor);
   const trackFood = nutritionConfig.trackFood !== false;
   const trackWater = nutritionConfig.trackWater !== false;
-  const starvationLimit = getStarvationLimit(actor);
+  const starvationLimit = nutritionConfig.starvationLimit ?? STARVATION_LIMIT;
   const starvation = trackFood ? (current.food >= needs.food ? 0 : (current.starvation + 1)) : 0;
   const foodHalf = !trackFood || (current.food >= (needs.food / 2));
   const foodFull = !trackFood || (current.food >= needs.food);
@@ -611,7 +643,8 @@ async function onRestCompleted(actor, result, config) {
     malnourished: state.malnourished
   });
 
-  if (state.saveRequired) await promptMalnutritionSave(actor);
+  const dc = nutritionConfig.malnutritionDC ?? 10;
+  if (state.saveRequired) await promptMalnutritionSave(actor, dc);
 }
 
 /**
@@ -622,7 +655,6 @@ async function onRestCompleted(actor, result, config) {
  * @returns {Promise<void>} A promise that resolves when the summary has been rendered.
  */
 async function onRenderRestChatMessage(message, html) {
-  if (!(html instanceof HTMLElement)) return;
   const chat = message.getFlag(MODULE_ID, "restChat");
   if (!chat?.previous) return;
 
@@ -660,7 +692,7 @@ async function onRenderRestChatMessage(message, html) {
 
   if (chat.starvation > 0) rows.push({
     label: game.i18n.localize("SIMPLE_NUTRITION.Chat.StarvationLabel"),
-    value: game.i18n.format("SIMPLE_NUTRITION.Chat.StarvationValue", { days: chat.starvation })
+    value: String(chat.starvation)
   });
 
   if (statuses.length) rows.push({
