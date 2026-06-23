@@ -98,44 +98,28 @@ export function getNutritionNeeds(actor) {
 }
 
 /**
- * Format a nutrition amount using the active display units without appending the unit label.
+ * Format a nutrition amount using the active display units.
  *
  * @param {NutritionType} type The nutrition type.
  * @param {number} value The nutrition amount.
+ * @param {{ withUnit?: boolean }} [options]
  * @returns {string} The formatted amount.
  */
-export function formatNutritionValue(type, value) {
+export function formatNutritionAmount(type, value, { withUnit = true } = {}) {
   if (type === "food") {
     const unit = game.dnd5e.utils.defaultUnits("weight");
-    return game.dnd5e.utils.convertWeight(value, "lb", unit).toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
+    const converted = game.dnd5e.utils.convertWeight(value, "lb", unit);
+    return withUnit
+      ? game.dnd5e.utils.formatWeight(converted, unit, { maximumFractionDigits: 3, unitDisplay: "short" })
+      : converted.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
   }
   if (game.settings.get("dnd5e", "metricVolumeUnits")) {
-    return (value * LITERS_PER_GALLON).toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
+    const liters = value * LITERS_PER_GALLON;
+    return withUnit
+      ? game.dnd5e.utils.formatVolume(liters, "liter", { maximumFractionDigits: 3, unitDisplay: "short" })
+      : liters.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
   }
-  return value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
-}
-
-/**
- * Format a nutrition amount with its unit.
- *
- * @param {NutritionType} type The nutrition type.
- * @param {number} value The nutrition amount.
- * @returns {string} The formatted amount.
- */
-export function formatNutritionAmount(type, value) {
-  if (type === "food") {
-    const unit = game.dnd5e.utils.defaultUnits("weight");
-    return game.dnd5e.utils.formatWeight(game.dnd5e.utils.convertWeight(value, "lb", unit), unit, {
-      maximumFractionDigits: 3,
-      unitDisplay: "short"
-    });
-  }
-  if (game.settings.get("dnd5e", "metricVolumeUnits")) {
-    return game.dnd5e.utils.formatVolume(value * LITERS_PER_GALLON, "liter", {
-      maximumFractionDigits: 3,
-      unitDisplay: "short"
-    });
-  }
+  if (!withUnit) return value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
   return game.i18n.format("SIMPLE_NUTRITION.Dialog.AmountWater", {
     value: value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 })
   });

@@ -4,8 +4,8 @@
 
 /**
  * @typedef {object} NutritionState
- * @property {number} food The consumed food today, measured in pounds.
- * @property {number} water The consumed water today, measured in gallons.
+ * @property {number} food The fraction of today's food requirement consumed (0 = none, 1 = requirement met).
+ * @property {number} water The fraction of today's water requirement consumed (0 = none, 1 = requirement met).
  * @property {number} starvation The consecutive number of days without food.
  * @property {boolean} foodConditionRemoved Whether malnutrition was removed after meeting today's food requirement.
  * @property {boolean} waterConditionRemoved Whether dehydration was removed after meeting today's water requirement.

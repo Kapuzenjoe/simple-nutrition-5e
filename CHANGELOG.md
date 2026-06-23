@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 1.0.0
+
+- Added calendar-driven nutrition tracking for `dnd5e` 6.0.0+:
+    - Follows the system's daily recovery setting. With calendar-driven recovery active, nutrition is now evaluated once per calendar midnight instead of during a long rest.
+    - Tracks the primary party's characters when one is configured, otherwise every character actor.
+    - Posts a separate summary message per actor.
+- Fixed the malnutrition saving throw rolling against the selected token instead of the actor the request was actually for.
+- Fixed the saving throw roll button no longer responding to a second click:
+    - The button now also shows the pass/fail result inline with a colored state.
+    - The "Apply Malnutrition" button remains available for manual control.
+- Rest and calendar nutrition summaries are no longer posted when both food and water requirements are already met, reducing chat spam.
+
 ## Version 0.5.0
 
 - The malnutrition saving throw chat message now includes an "Apply Malnutrition" button that directly applies 1 level of Exhaustion and the Malnutrition condition.
