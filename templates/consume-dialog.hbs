@@ -24,27 +24,11 @@
     </fieldset>
 
     {{#if showFreshWater}}
-    <div class="form-group">
-        <label for="{{ moduleId }}-fresh-water">
-            {{ localize "SIMPLE_NUTRITION.Dialog.FreshWater" }}
-        </label>
-        <div class="form-fields">
-            <input id="{{ moduleId }}-fresh-water" type="checkbox" name="freshWater">
-        </div>
-        <p class="hint">{{ localize "SIMPLE_NUTRITION.Dialog.FreshWaterHint" }}</p>
-    </div>
+    {{ formField fields.freshWater name="freshWater" input=inputs.createCheckboxInput hint=hints.freshWater localize=true }}
     {{/if}}
 
     {{#if showFreeFood}}
-    <div class="form-group">
-        <label for="{{ moduleId }}-free-food">
-            {{ localize "SIMPLE_NUTRITION.Dialog.FreeFood" }}
-        </label>
-        <div class="form-fields">
-            <input id="{{ moduleId }}-free-food" type="checkbox" name="freeFood">
-        </div>
-        <p class="hint">{{ localize "SIMPLE_NUTRITION.Dialog.FreeFoodHint" }}</p>
-    </div>
+    {{ formField fields.freeFood name="freeFood" input=inputs.createCheckboxInput hint=hints.freeFood localize=true }}
     {{/if}}
 
     {{#if hasNutritionItems}}

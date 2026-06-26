@@ -10,6 +10,9 @@ export const EXHAUSTION_PATH = "system.attributes.exhaustion";
 export const FOOD_NEEDS = { tiny: 0.25, sm: 1, med: 1, lg: 4, huge: 16, grg: 64 }; // in pounds
 export const WATER_NEEDS = { tiny: 0.25, sm: 1, med: 1, lg: 4, huge: 16, grg: 64 }; // in gallons
 export const STARVATION_LIMIT = 5;
+export const STARVATION_FORMULA_LEGACY = "max(1, 3 + @abilities.con.mod)";
+export const SAVE_DC_MODERN = 10;
+export const SAVE_DC_LEGACY = 15;
 
 export const MAGICAL_BERRIES_IDENTIFIER = "magical-berries";
 export const WATER_ITEM_AMOUNT = 0.125;

@@ -17,16 +17,20 @@
  * @property {boolean} trackWater Whether water tracking is enabled.
  * @property {number|null} foodPerDay The actor-specific daily food requirement in pounds.
  * @property {number|null} waterPerDay The actor-specific daily water requirement in gallons.
- * @property {number|null} starvationLimit The actor-specific starvation threshold in days.
- * @property {number|null} malnutritionDC The actor-specific DC for the Constitution saving throw against malnutrition.
+ * @property {string|null} starvationLimit The actor-specific formula for the starvation threshold in days (flat day count under modern rules, CON-mod formula under legacy rules).
+ * @property {string|null} malnutritionDC The actor-specific formula for the Constitution saving throw DC (food under modern rules, water under legacy rules).
  */
 
 /**
  * @typedef {object} NutritionRestState
- * @property {number} starvation The consecutive number of days without food.
- * @property {boolean} dehydrated Whether the actor is dehydrated after the rest.
- * @property {boolean} malnourished Whether the actor is malnourished after the rest.
- * @property {boolean} saveRequired Whether the actor must roll a malnutrition saving throw manually.
+ * @property {number} starvation The accumulated days-without-food counter (accrual rule differs by ruleset).
+ * @property {boolean} dehydrated Whether the dehydration condition should be active (modern rules only).
+ * @property {boolean} malnourished Whether the malnutrition condition should be active (modern rules only).
+ * @property {boolean} saveRequired Whether the actor must roll a nutrition saving throw manually.
+ * @property {NutritionType|null} saveType Which nutrition type the save is for, when `saveRequired` is true.
+ * @property {number} penalty The automatic exhaustion levels to apply for this day.
+ * @property {boolean} foodFull Whether today's food requirement was fully met.
+ * @property {boolean} waterFull Whether today's water requirement was fully met.
  */
 
 /**

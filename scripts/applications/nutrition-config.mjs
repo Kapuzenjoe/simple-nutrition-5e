@@ -2,6 +2,9 @@ import {
   FOOD_NEEDS,
   LITERS_PER_GALLON,
   MODULE_ID,
+  SAVE_DC_LEGACY,
+  SAVE_DC_MODERN,
+  STARVATION_FORMULA_LEGACY,
   STARVATION_LIMIT,
   WATER_NEEDS
 } from "../config.mjs";
@@ -14,6 +17,7 @@ import {
 const BaseConfigSheet = game.dnd5e.applications.actor.BaseConfigSheetV2;
 
 const { BooleanField, NumberField } = foundry.data.fields;
+const { FormulaField } = game.dnd5e.dataModels.fields;
 const { convertWeight, defaultUnits } = game.dnd5e.utils;
 
 /**
@@ -36,36 +40,40 @@ export default class NutritionConfig extends BaseConfigSheet {
   };
 
   /** @override */
+  get title() {
+    return game.i18n.localize("SIMPLE_NUTRITION.Config.Title");
+  }
+
+  /* -------------------------------------------- */
+
+  /** @override */
   _initializeApplicationOptions(options) {
     options = super._initializeApplicationOptions(options);
     options.uniqueId = `${MODULE_ID}-${options.document.uuid}-config`.replace(/\./g, "-");
     return options;
   }
 
-  /** @override */
-  get title() {
-    return game.i18n.localize("SIMPLE_NUTRITION.Config.Title");
-  }
+  /* -------------------------------------------- */
 
   /** @inheritDoc */
   async _preparePartContext(partId, context, options) {
     context = await super._preparePartContext(partId, context, options);
 
     const size = this.document.system.traits.size;
-    const defaults = {
-      food: FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
-      water: WATER_NEEDS[size] ?? WATER_NEEDS.med,
-      starvation: STARVATION_LIMIT
-    };
     const config = getNutritionConfig(this.document);
     const weightUnit = defaultUnits("weight");
     const metricVolume = game.settings.get("dnd5e", "metricVolumeUnits");
-    const foodUnitLabelKey = CONFIG.DND5E.weightUnits[weightUnit]?.abbreviation;
-    const waterUnitLabelKey = metricVolume ? CONFIG.DND5E.volumeUnits.liter.abbreviation : null;
-    const foodUnitLabel = game.i18n.has(foodUnitLabelKey) ? game.i18n.localize(foodUnitLabelKey) : (foodUnitLabelKey ?? weightUnit);
-    const waterUnitLabel = metricVolume
-      ? (game.i18n.has(waterUnitLabelKey) ? game.i18n.localize(waterUnitLabelKey) : "L")
-      : "gal";
+    const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+    const defaults = {
+      food: FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
+      water: WATER_NEEDS[size] ?? WATER_NEEDS.med,
+      starvation: game.dnd5e.utils.simplifyBonus(
+        legacy ? STARVATION_FORMULA_LEGACY : String(STARVATION_LIMIT),
+        this.document.getRollData()
+      )
+    };
+    const foodUnitLabel = CONFIG.DND5E.weightUnits[weightUnit]?.abbreviation ?? weightUnit;
+    const waterUnitLabel = metricVolume ? CONFIG.DND5E.volumeUnits.liter.abbreviation : "gal";
     context.data = {
       trackFood: config.trackFood !== false,
       trackWater: config.trackWater !== false,
@@ -95,17 +103,15 @@ export default class NutritionConfig extends BaseConfigSheet {
         initial: null,
         label: `${game.i18n.localize("SIMPLE_NUTRITION.Config.WaterPerDay")} (${waterUnitLabel})`
       }),
-      starvationLimit: new NumberField({
+      starvationLimit: new FormulaField({
+        deterministic: true,
         nullable: true,
-        integer: true,
-        min: 1,
         initial: null,
         label: "SIMPLE_NUTRITION.Config.StarvationLimit"
       }),
-      malnutritionDC: new NumberField({
+      malnutritionDC: new FormulaField({
+        deterministic: true,
         nullable: true,
-        integer: true,
-        min: 1,
         initial: null,
         label: "SIMPLE_NUTRITION.Config.SaveDC"
       })
@@ -118,7 +124,7 @@ export default class NutritionConfig extends BaseConfigSheet {
         game.i18n.lang,
         { maximumFractionDigits: 3 }
       ),
-      malnutritionDC: (10).toLocaleString(game.i18n.lang),
+      malnutritionDC: (legacy ? SAVE_DC_LEGACY : SAVE_DC_MODERN).toLocaleString(game.i18n.lang),
       starvationLimit: defaults.starvation.toLocaleString(game.i18n.lang)
     };
     context.hints = {
@@ -130,7 +136,9 @@ export default class NutritionConfig extends BaseConfigSheet {
       waterPerDay: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultValue", {
         value: formatNutritionAmount("water", defaults.water)
       }),
-      malnutritionDC: game.i18n.localize("SIMPLE_NUTRITION.Config.MalnutritionDCHint"),
+      malnutritionDC: game.i18n.localize(legacy
+        ? "SIMPLE_NUTRITION.Config.SaveDCHintWater"
+        : "SIMPLE_NUTRITION.Config.SaveDCHintFood"),
       starvationLimit: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultDays", {
         days: context.placeholders.starvationLimit
       })
@@ -139,10 +147,14 @@ export default class NutritionConfig extends BaseConfigSheet {
     return context;
   }
 
+  /* -------------------------------------------- */
+
   /** @override */
   _prepareSubmitData(event, form, formData) {
     return foundry.utils.expandObject(formData.object);
   }
+
+  /* -------------------------------------------- */
 
   /** @inheritDoc */
   async _processSubmitData(event, form, submitData) {
@@ -158,10 +170,12 @@ export default class NutritionConfig extends BaseConfigSheet {
       waterPerDay: (waterPerDay === null)
         ? null
         : (metricVolume ? (waterPerDay / LITERS_PER_GALLON) : waterPerDay),
-      starvationLimit: this.#normalizeNumber(config.starvationLimit, { integer: true, min: 1 }),
-      malnutritionDC: this.#normalizeNumber(config.malnutritionDC, { integer: true, min: 1 })
+      starvationLimit: config.starvationLimit?.trim() || null,
+      malnutritionDC: config.malnutritionDC?.trim() || null
     });
   }
+
+  /* -------------------------------------------- */
 
   /**
    * Normalize a numeric config value from form submission.
@@ -171,9 +185,9 @@ export default class NutritionConfig extends BaseConfigSheet {
    * @returns {number|null} The normalized numeric value.
    */
   #normalizeNumber(value, { integer=false, min=0 }={}) {
-    if ((value === null) || (value === undefined) || (value === "")) return null;
+    if ( (value === null) || (value === undefined) || (value === "") ) return null;
     const number = Number(value);
-    if (!Number.isFinite(number)) return null;
+    if ( !Number.isFinite(number) ) return null;
     return Math.max(integer ? Math.trunc(number) : number, min);
   }
 }

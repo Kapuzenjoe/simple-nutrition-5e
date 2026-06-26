@@ -15,89 +15,6 @@ import {
 } from "../config.mjs";
 
 /**
- * Get the stored nutrition flag for an actor.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {NutritionState & { config: NutritionConfig }} The stored nutrition flag.
- */
-export function getNutritionFlag(actor) {
-  const flag = actor.getFlag(MODULE_ID, NUTRITION_FLAG) ?? {};
-  const { config, ...state } = flag;
-  return {
-    ...EMPTY_NUTRITION_STATE,
-    ...state,
-    config: { ...EMPTY_NUTRITION_CONFIG, ...(config ?? {}) }
-  };
-}
-
-/**
- * Get the current nutrition state for an actor.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {NutritionState} The stored nutrition state.
- */
-export function getNutritionState(actor) {
-  const { config, ...state } = getNutritionFlag(actor);
-  return state;
-}
-
-/**
- * Get the actor-specific nutrition config.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {NutritionConfig} The stored nutrition config.
- */
-export function getNutritionConfig(actor) {
-  return getNutritionFlag(actor).config;
-}
-
-/**
- * Persist nutrition state while keeping actor-specific config.
- *
- * @param {Actor5e} actor The actor to update.
- * @param {Partial<NutritionState>} state The state changes to apply.
- * @returns {Promise<Actor5e>} A promise that resolves to the updated actor.
- */
-export function setNutritionState(actor, state) {
-  const current = getNutritionFlag(actor);
-  return actor.setFlag(MODULE_ID, NUTRITION_FLAG, {
-    ...current,
-    ...state,
-    config: current.config
-  });
-}
-
-/**
- * Persist nutrition config while keeping current runtime state.
- *
- * @param {Actor5e} actor The actor to update.
- * @param {Partial<NutritionConfig>} config The config changes to apply.
- * @returns {Promise<Actor5e>} A promise that resolves to the updated actor.
- */
-export function setNutritionConfig(actor, config) {
-  const current = getNutritionFlag(actor);
-  return actor.setFlag(MODULE_ID, NUTRITION_FLAG, {
-    ...current,
-    config: foundry.utils.mergeObject(current.config, config, { inplace: false })
-  });
-}
-
-/**
- * Get the daily food and water requirements for an actor.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {{ food: number, water: number }} The required food and water amounts.
- */
-export function getNutritionNeeds(actor) {
-  const size = actor.system.traits.size;
-  const config = getNutritionConfig(actor);
-  return {
-    food: config.foodPerDay ?? FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
-    water: config.waterPerDay ?? WATER_NEEDS[size] ?? WATER_NEEDS.med
-  };
-}
-
-/**
  * Format a nutrition amount using the active display units.
  *
  * @param {NutritionType} type The nutrition type.
@@ -105,37 +22,26 @@ export function getNutritionNeeds(actor) {
  * @param {{ withUnit?: boolean }} [options]
  * @returns {string} The formatted amount.
  */
-export function formatNutritionAmount(type, value, { withUnit = true } = {}) {
-  if (type === "food") {
+export function formatNutritionAmount(type, value, { withUnit = true }={}) {
+  if ( type === "food" ) {
     const unit = game.dnd5e.utils.defaultUnits("weight");
     const converted = game.dnd5e.utils.convertWeight(value, "lb", unit);
     return withUnit
       ? game.dnd5e.utils.formatWeight(converted, unit, { maximumFractionDigits: 3, unitDisplay: "short" })
       : converted.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
   }
-  if (game.settings.get("dnd5e", "metricVolumeUnits")) {
+  if ( game.settings.get("dnd5e", "metricVolumeUnits") ) {
     const liters = value * LITERS_PER_GALLON;
     return withUnit
       ? game.dnd5e.utils.formatVolume(liters, "liter", { maximumFractionDigits: 3, unitDisplay: "short" })
       : liters.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
   }
-  if (!withUnit) return value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
-  return game.i18n.format("SIMPLE_NUTRITION.Dialog.AmountWater", {
-    value: value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 })
-  });
+  return withUnit
+    ? game.dnd5e.utils.formatVolume(value, "gallon", { maximumFractionDigits: 3, unitDisplay: "short" })
+    : value.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
 }
 
-/**
- * Get the food amount provided by one item.
- *
- * @param {Actor5e} actor The owning actor.
- * @param {Item5e} item The item being consumed.
- * @returns {number} The food amount provided by one item in pounds.
- */
-function getFoodItemAmount(actor, item) {
-  if (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) return getNutritionNeeds(actor).food;
-  return game.dnd5e.utils.convertWeight(item.system.weight.value, item.system.weight.units, "lb");
-}
+/* -------------------------------------------- */
 
 /**
  * Get the nutrition amount provided by one item.
@@ -146,8 +52,12 @@ function getFoodItemAmount(actor, item) {
  * @returns {number} The nutrition amount provided by one item.
  */
 export function getNutritionAmount(actor, type, item) {
-  return type === "food" ? getFoodItemAmount(actor, item) : WATER_ITEM_AMOUNT;
+  if ( type !== "food" ) return WATER_ITEM_AMOUNT;
+  if ( item.system.identifier === MAGICAL_BERRIES_IDENTIFIER ) return getNutritionNeeds(actor).food;
+  return game.dnd5e.utils.convertWeight(item.system.weight.value, item.system.weight.units, "lb");
 }
+
+/* -------------------------------------------- */
 
 /**
  * Get a localized amount hint for one consumable item.
@@ -158,11 +68,13 @@ export function getNutritionAmount(actor, type, item) {
  * @returns {string|null} A localized amount hint for one item.
  */
 export function getNutritionAmountLabel(actor, type, item) {
-  if ((type === "food") && (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER)) {
+  if ( (type === "food") && (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) ) {
     return game.i18n.localize("SIMPLE_NUTRITION.Dialog.AmountFullDay");
   }
   return formatNutritionAmount(type, getNutritionAmount(actor, type, item));
 }
+
+/* -------------------------------------------- */
 
 /**
  * Build a nutrition candidate from an item.
@@ -182,4 +94,99 @@ export function getNutritionCandidate(actor, type, item) {
     amount: getNutritionAmountLabel(actor, type, item),
     value: getNutritionAmount(actor, type, item)
   };
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the actor-specific nutrition config.
+ *
+ * @param {Actor5e} actor The actor to inspect.
+ * @returns {NutritionConfig} The stored nutrition config.
+ */
+export function getNutritionConfig(actor) {
+  return getNutritionFlag(actor).config;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the stored nutrition flag for an actor.
+ *
+ * @param {Actor5e} actor The actor to inspect.
+ * @returns {NutritionState & { config: NutritionConfig }} The stored nutrition flag.
+ */
+export function getNutritionFlag(actor) {
+  const flag = actor.getFlag(MODULE_ID, NUTRITION_FLAG) ?? {};
+  const { config, ...state } = flag;
+  return {
+    ...EMPTY_NUTRITION_STATE,
+    ...state,
+    config: { ...EMPTY_NUTRITION_CONFIG, ...(config ?? {}) }
+  };
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the daily food and water requirements for an actor.
+ *
+ * @param {Actor5e} actor The actor to inspect.
+ * @returns {{ food: number, water: number }} The required food and water amounts.
+ */
+export function getNutritionNeeds(actor) {
+  const size = actor.system.traits.size;
+  const config = getNutritionConfig(actor);
+  return {
+    food: config.foodPerDay ?? FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
+    water: config.waterPerDay ?? WATER_NEEDS[size] ?? WATER_NEEDS.med
+  };
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the current nutrition state for an actor.
+ *
+ * @param {Actor5e} actor The actor to inspect.
+ * @returns {NutritionState} The stored nutrition state.
+ */
+export function getNutritionState(actor) {
+  const { config, ...state } = getNutritionFlag(actor);
+  return state;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Persist nutrition config while keeping current runtime state.
+ *
+ * @param {Actor5e} actor The actor to update.
+ * @param {Partial<NutritionConfig>} config The config changes to apply.
+ * @returns {Promise<Actor5e>} A promise that resolves to the updated actor.
+ */
+export function setNutritionConfig(actor, config) {
+  const current = getNutritionFlag(actor);
+  return actor.setFlag(MODULE_ID, NUTRITION_FLAG, {
+    ...current,
+    config: { ...current.config, ...config }
+  });
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Persist nutrition state while keeping actor-specific config.
+ *
+ * @param {Actor5e} actor The actor to update.
+ * @param {Partial<NutritionState>} state The state changes to apply.
+ * @returns {Promise<Actor5e>} A promise that resolves to the updated actor.
+ */
+export function setNutritionState(actor, state) {
+  const current = getNutritionFlag(actor);
+  return actor.setFlag(MODULE_ID, NUTRITION_FLAG, {
+    ...current,
+    ...state,
+    config: current.config
+  });
 }

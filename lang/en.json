@@ -24,7 +24,6 @@
       "SelectedLabel": "Selected",
       "Each": "{amount} each",
       "AmountFullDay": "full day",
-      "AmountWater": "{value} gal",
       "DropLegend": "Add Consumable",
       "DropHint": "Drag a consumable from this actor's inventory here to add it to the list.",
       "Owned": "Owned: {quantity}",
@@ -65,15 +64,18 @@
       "DefaultValue": "Default: {value}",
       "DefaultDays": "Default: {days} days",
       "SaveDC": "Save DC",
-      "MalnutritionDCHint": "Constitution saving throw DC when insufficient food is consumed."
+      "SaveDCHintFood": "Constitution saving throw DC when insufficient food is consumed.",
+      "SaveDCHintWater": "Constitution saving throw DC when insufficient water is consumed."
     },
     "Chat": {
       "Title": "Nutrition",
-      "StarvationLabel": "Days without food"
+      "StarvationLabel": "Days without food",
+      "ExhaustionLabel": "Exhaustion"
     },
     "Rest": {
-      "MalnutritionSaveHint": "On a failed save, use the button below to apply 1 level of &Reference[exhaustion apply=false] and the &Reference[malnutrition apply=false] condition.",
-      "MalnutritionApply": "Apply Malnutrition"
+      "FoodSaveHint": "On a failed save, use the button below to apply 1 level of &Reference[exhaustion apply=false] and the &Reference[malnutrition apply=false] condition.",
+      "WaterSaveHint": "On a failed save, use the button below to apply 1 level of &Reference[exhaustion apply=false] (2 levels if already exhausted).",
+      "ApplyExhaustion": "Apply Exhaustion"
     }
   }
 }
