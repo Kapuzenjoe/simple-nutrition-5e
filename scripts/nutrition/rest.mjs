@@ -10,14 +10,13 @@ import {
   CONDITION_MALNUTRITION,
   EXHAUSTION_PATH,
   MODULE_ID,
-  SAVE_DC_LEGACY,
-  SAVE_DC_MODERN,
   STARVATION_FORMULA_LEGACY,
   STARVATION_LIMIT
 } from "../config.mjs";
 
 import {
   getNutritionFlag,
+  getNutritionSaveDC,
   setNutritionState
 } from "./actor.mjs";
 
@@ -29,12 +28,14 @@ import {
  * @returns {Promise<void>} A promise that resolves when the actor has been updated.
  */
 export async function applyNutrition(actor, state) {
+  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
   await setNutritionState(actor, {
     food: 0,
     water: 0,
     starvation: state.starvation,
     foodConditionRemoved: false,
-    waterConditionRemoved: false
+    waterConditionRemoved: false,
+    exhaustionRecoveryBlocked: legacy && (!state.foodFull || !state.waterFull)
   });
 
   await actor.toggleStatusEffect(CONDITION_DEHYDRATION, { active: state.dehydrated });
@@ -108,10 +109,25 @@ export function computeNutrition(actor) {
  * @returns {void}
  */
 export function onPreRestCompleted(actor, result, config) {
-  if ( (actor.type !== "character") || !config.newDay || !(game.dnd5e.settings.calendarConfig?.manualRecovery ?? true) ) return;
+  if ( (actor.type !== "character") || !config.newDay ) return;
+
+  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+  const calendarMode = !(game.dnd5e.settings.calendarConfig?.manualRecovery ?? true);
+
+  // Under calendar-driven recovery, modern conditions already block system recovery; legacy has no
+  // condition to key off, so the day-change block (`exhaustionRecoveryBlocked`) is reapplied here.
+  if ( calendarMode ) {
+    if ( !legacy ) return;
+    const { exhaustionRecoveryBlocked } = getNutritionFlag(actor);
+    if ( !exhaustionRecoveryBlocked ) return;
+    const clone = foundry.utils.getProperty(result.clone, EXHAUSTION_PATH) ?? 0;
+    foundry.utils.mergeObject(result.updateData, {
+      [EXHAUSTION_PATH]: Math.clamp(clone, 0, CONFIG.DND5E.conditionTypes.exhaustion.levels)
+    });
+    return;
+  }
 
   const { state } = computeNutrition(actor);
-  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
   const recoveryBlocked = legacy && (!state.foodFull || !state.waterFull);
 
   if ( recoveryBlocked || state.penalty ) {
@@ -159,10 +175,6 @@ export async function onRestCompleted(actor, result, config) {
     penalty: state.penalty
   });}
 
-  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
-  const dc = game.dnd5e.utils.simplifyBonus(
-    nutritionConfig.malnutritionDC ?? (legacy ? SAVE_DC_LEGACY : SAVE_DC_MODERN),
-    actor.getRollData()
-  );
+  const dc = getNutritionSaveDC(actor, nutritionConfig);
   if ( state.saveRequired ) await promptNutritionSave(actor, state.saveType, dc);
 }

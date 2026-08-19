@@ -96,7 +96,7 @@ export async function promptNutritionSave(actor, type, dc) {
   );
   const applyLabel = `<i class="fa-solid fa-heart-circle-exclamation"></i> ${game.i18n.localize("SIMPLE_NUTRITION.Rest.ApplyExhaustion")}`;
   const request = await foundry.applications.handlebars.renderTemplate(
-    "systems/dnd5e/templates/chat/roll-request-card.hbs",
+    "modules/simple-nutrition-5e/templates/save-request.hbs",
     {
       buttons: [
         {

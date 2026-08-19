@@ -15,7 +15,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
   constructor(options={}) {
     super(options);
     this.#actor = options.document;
-    this.#daysWithoutFood = options.daysWithoutFood ?? 0;
+    this.#starvation = options.starvation ?? 0;
     this.#items = options.items;
     this.#required = options.required ?? "";
     this.#requiredValue = options.requiredValue ?? 0;
@@ -40,7 +40,6 @@ export default class NutritionConsumeDialog extends Dialog5e {
       label: game.i18n.localize("Cancel"),
       type: "button"
     }],
-    daysWithoutFood: 0,
     document: null,
     form: {
       handler: NutritionConsumeDialog.#handleFormSubmission
@@ -51,6 +50,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     },
     required: "",
     requiredValue: 0,
+    starvation: 0,
     type: null
   };
 
@@ -144,7 +144,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
    * Display the nutrition consumption dialog.
    *
    * @param {Actor5e} actor The actor consuming nutrition.
-   * @param {{ type: NutritionType, items: NutritionCandidate[], required: string, requiredValue?: number, daysWithoutFood?: number }} options The dialog configuration.
+   * @param {{ type: NutritionType, items: NutritionCandidate[], required: string, requiredValue?: number, starvation?: number }} options The dialog configuration.
    * @returns {Promise<NutritionConsumption|null>} The submitted result, or null if the dialog is dismissed.
    */
   static async consume(actor, options={}) {
@@ -167,12 +167,6 @@ export default class NutritionConsumeDialog extends Dialog5e {
    * @type {Actor5e}
    */
   #actor;
-
-  /**
-   * Consecutive days without food.
-   * @type {number}
-   */
-  #daysWithoutFood;
 
   /**
    * Local form state preserved across re-renders.
@@ -209,6 +203,12 @@ export default class NutritionConsumeDialog extends Dialog5e {
   #result = null;
 
   /**
+   * Accumulated starvation counter (fractional under legacy rules).
+   * @type {number}
+   */
+  #starvation;
+
+  /**
    * Type of nutrition being consumed.
    * @type {NutritionType}
    */
@@ -218,12 +218,6 @@ export default class NutritionConsumeDialog extends Dialog5e {
 
   get actor() {
     return this.#actor;
-  }
-
-  /* -------------------------------------------- */
-
-  get daysWithoutFood() {
-    return this.#daysWithoutFood;
   }
 
   /* -------------------------------------------- */
@@ -248,6 +242,12 @@ export default class NutritionConsumeDialog extends Dialog5e {
 
   get result() {
     return this.#result;
+  }
+
+  /* -------------------------------------------- */
+
+  get starvation() {
+    return this.#starvation;
   }
 
   /* -------------------------------------------- */
@@ -333,7 +333,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
       increaseLabel: game.i18n.format("SIMPLE_NUTRITION.Dialog.Increase", { item: item.name })
     }));
 
-    context.daysWithoutFood = this.daysWithoutFood;
+    context.starvation = this.starvation;
     context.hasNutritionItems = nutritionItems.length > 0;
     context.fields = {
       freshWater: new BooleanField({ label: "SIMPLE_NUTRITION.Dialog.FreshWater" }),
@@ -348,7 +348,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     context.nutritionItems = nutritionItems;
     context.required = this.required;
     context.selected = formatNutritionAmount(this.type, 0);
-    context.showDaysWithoutFood = (this.type === "food") && (this.daysWithoutFood > 0);
+    context.showStarvation = (this.type === "food") && (this.starvation > 0);
     context.showFreshWater = this.type === "water";
     context.showFreeFood = this.type === "food";
 

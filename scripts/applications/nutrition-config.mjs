@@ -1,12 +1,11 @@
 import {
-  FOOD_NEEDS,
+  BASE_NEEDS,
   LITERS_PER_GALLON,
   MODULE_ID,
   SAVE_DC_LEGACY,
   SAVE_DC_MODERN,
   STARVATION_FORMULA_LEGACY,
-  STARVATION_LIMIT,
-  WATER_NEEDS
+  STARVATION_LIMIT
 } from "../config.mjs";
 import {
   formatNutritionAmount,
@@ -65,8 +64,8 @@ export default class NutritionConfig extends BaseConfigSheet {
     const metricVolume = game.settings.get("dnd5e", "metricVolumeUnits");
     const legacy = game.dnd5e.settings.rulesVersion === "legacy";
     const defaults = {
-      food: FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
-      water: WATER_NEEDS[size] ?? WATER_NEEDS.med,
+      food: BASE_NEEDS[size] ?? BASE_NEEDS.med,
+      water: BASE_NEEDS[size] ?? BASE_NEEDS.med,
       starvation: game.dnd5e.utils.simplifyBonus(
         legacy ? STARVATION_FORMULA_LEGACY : String(STARVATION_LIMIT),
         this.document.getRollData()
@@ -181,13 +180,12 @@ export default class NutritionConfig extends BaseConfigSheet {
    * Normalize a numeric config value from form submission.
    *
    * @param {unknown} value The submitted value.
-   * @param {{ integer?: boolean, min?: number }} [options] Normalization options.
    * @returns {number|null} The normalized numeric value.
    */
-  #normalizeNumber(value, { integer=false, min=0 }={}) {
+  #normalizeNumber(value) {
     if ( (value === null) || (value === undefined) || (value === "") ) return null;
     const number = Number(value);
     if ( !Number.isFinite(number) ) return null;
-    return Math.max(integer ? Math.trunc(number) : number, min);
+    return Math.max(number, 0);
   }
 }

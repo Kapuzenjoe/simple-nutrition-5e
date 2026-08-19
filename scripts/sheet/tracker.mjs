@@ -107,6 +107,38 @@ function buildTrackerContext(actor) {
 /* -------------------------------------------- */
 
 /**
+ * Render one nutrition tracker button.
+ *
+ * @param {NutritionType} type The nutrition type the button controls.
+ * @param {boolean} editable Whether the tracker can be interacted with.
+ * @param {boolean} track Whether this nutrition type is tracked.
+ * @param {boolean} active Whether today's requirement for this type is met.
+ * @param {string} tooltip The escaped tooltip text.
+ * @param {string} label The localized nutrition type label.
+ * @param {string} progress The localized progress text.
+ * @returns {string} The rendered button markup.
+ */
+function nutritionButtonHTML(type, editable, track, active, tooltip, label, progress) {
+  const icon = type === "food" ? "fa-drumstick-bite" : "fa-glass-water";
+  return `
+    <button
+      type="button"
+      class="unbutton simple-nutrition__button ${track ? (active ? "is-active" : "is-inactive") : "is-disabled"}"
+      data-nutrition="${type}"
+      data-tooltip="${tooltip}"
+      aria-label="${tooltip}"
+      ${(editable && track) ? "" : "disabled"}
+    >
+      <i class="fas ${icon}" inert></i>
+      <span class="simple-nutrition__label">${label}</span>
+      <span class="simple-nutrition__state" aria-hidden="true">${progress}</span>
+    </button>
+  `;
+}
+
+/* -------------------------------------------- */
+
+/**
  * Open the nutrition config sheet for the current actor.
  *
  * @param {CharacterActorSheet} app The rendered character sheet application.
@@ -192,40 +224,48 @@ async function onToggleNutrition(actor, event) {
 /* -------------------------------------------- */
 
 /**
+ * Render one compact Tidy 5e nutrition button.
+ *
+ * @param {NutritionType} type The nutrition type the button controls.
+ * @param {boolean} editable Whether the tracker can be interacted with.
+ * @param {boolean} track Whether this nutrition type is tracked.
+ * @param {boolean} ready Whether today's requirement for this type is met.
+ * @param {string} tooltip The escaped tooltip text.
+ * @returns {string} The rendered button markup.
+ */
+function tidyNutritionButtonHTML(type, editable, track, ready, tooltip) {
+  const icon = type === "food" ? "fa-drumstick-bite" : "fa-glass-water";
+  return `
+    <button
+      type="button"
+      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${track && ready ? "simple-nutrition__button--ready" : ""} ${track ? "" : "simple-nutrition__button--disabled"}"
+      data-simple-nutrition
+      data-nutrition="${type}"
+      data-tooltip="${tooltip}"
+      aria-label="${tooltip}"
+      ${(editable && track) ? "" : "disabled"}
+    >
+      <i class="fas ${icon}" inert></i>
+    </button>
+  `;
+}
+
+/* -------------------------------------------- */
+
+/**
  * Render compact nutrition controls for Tidy 5e header actions.
  *
  * @param {Actor5e} actor The actor being rendered.
  * @param {boolean} editable Whether the tracker can be interacted with.
- * @param configurable
+ * @param {boolean} configurable Whether the configure button should be rendered.
  * @returns {string} The rendered tracker markup.
  */
 function tidyTrackerHTML(actor, editable, configurable) {
   const { state, trackFood, trackWater, configTooltip, foodTooltip, waterTooltip } = buildTrackerContext(actor);
 
   return `
-    <button
-      type="button"
-      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${trackFood && (state.food >= 1) ? "simple-nutrition__button--ready" : ""} ${trackFood ? "" : "simple-nutrition__button--disabled"}"
-      data-simple-nutrition
-      data-nutrition="food"
-      data-tooltip="${foodTooltip}"
-      aria-label="${foodTooltip}"
-      ${(editable && trackFood) ? "" : "disabled"}
-    >
-      <i class="fas fa-drumstick-bite" inert></i>
-    </button>
-
-    <button
-      type="button"
-      class="button button-icon-only button-gold flexshrink simple-nutrition__button ${trackWater && (state.water >= 1) ? "simple-nutrition__button--ready" : ""} ${trackWater ? "" : "simple-nutrition__button--disabled"}"
-      data-simple-nutrition
-      data-nutrition="water"
-      data-tooltip="${waterTooltip}"
-      aria-label="${waterTooltip}"
-      ${(editable && trackWater) ? "" : "disabled"}
-    >
-      <i class="fas fa-glass-water" inert></i>
-    </button>
+    ${tidyNutritionButtonHTML("food", editable, trackFood, state.food >= 1, foodTooltip)}
+    ${tidyNutritionButtonHTML("water", editable, trackWater, state.water >= 1, waterTooltip)}
 
     ${configurable ? `
       <button
@@ -249,7 +289,7 @@ function tidyTrackerHTML(actor, editable, configurable) {
  *
  * @param {Actor5e} actor The actor being rendered.
  * @param {boolean} editable Whether the tracker can be interacted with.
- * @param configurable
+ * @param {boolean} configurable Whether the configure button should be rendered.
  * @returns {string} The rendered tracker markup.
  */
 function trackerHTML(actor, editable, configurable) {
@@ -285,31 +325,10 @@ function trackerHTML(actor, editable, configurable) {
       </div>
 
       <div class="simple-nutrition__row">
-        <button
-          type="button"
-          class="unbutton simple-nutrition__button ${trackFood ? ((state.food >= 1) ? "is-active" : "is-inactive") : "is-disabled"}"
-          data-nutrition="food"
-          data-tooltip="${foodTooltip}"
-          aria-label="${foodTooltip}"
-          ${(editable && trackFood) ? "" : "disabled"}
-        >
-          <i class="fas fa-drumstick-bite" inert></i>
-          <span class="simple-nutrition__label">${game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food")}</span>
-          <span class="simple-nutrition__state" aria-hidden="true">${foodProgress}</span>
-        </button>
-
-        <button
-          type="button"
-          class="unbutton simple-nutrition__button ${trackWater ? ((state.water >= 1) ? "is-active" : "is-inactive") : "is-disabled"}"
-          data-nutrition="water"
-          data-tooltip="${waterTooltip}"
-          aria-label="${waterTooltip}"
-          ${(editable && trackWater) ? "" : "disabled"}
-        >
-          <i class="fas fa-glass-water" inert></i>
-          <span class="simple-nutrition__label">${game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water")}</span>
-          <span class="simple-nutrition__state" aria-hidden="true">${waterProgress}</span>
-        </button>
+        ${nutritionButtonHTML("food", editable, trackFood, state.food >= 1, foodTooltip,
+          game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"), foodProgress)}
+        ${nutritionButtonHTML("water", editable, trackWater, state.water >= 1, waterTooltip,
+          game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"), waterProgress)}
       </div>
     </div>
   `;

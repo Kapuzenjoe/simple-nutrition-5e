@@ -3,15 +3,16 @@
  */
 
 import {
+  BASE_NEEDS,
   EMPTY_NUTRITION_CONFIG,
   EMPTY_NUTRITION_STATE,
-  FOOD_NEEDS,
   LITERS_PER_GALLON,
   MAGICAL_BERRIES_IDENTIFIER,
   MODULE_ID,
   NUTRITION_FLAG,
-  WATER_ITEM_AMOUNT,
-  WATER_NEEDS
+  SAVE_DC_LEGACY,
+  SAVE_DC_MODERN,
+  WATER_ITEM_AMOUNT
 } from "../config.mjs";
 
 /**
@@ -138,9 +139,26 @@ export function getNutritionNeeds(actor) {
   const size = actor.system.traits.size;
   const config = getNutritionConfig(actor);
   return {
-    food: config.foodPerDay ?? FOOD_NEEDS[size] ?? FOOD_NEEDS.med,
-    water: config.waterPerDay ?? WATER_NEEDS[size] ?? WATER_NEEDS.med
+    food: config.foodPerDay ?? BASE_NEEDS[size] ?? BASE_NEEDS.med,
+    water: config.waterPerDay ?? BASE_NEEDS[size] ?? BASE_NEEDS.med
   };
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the malnutrition/dehydration saving throw DC for an actor.
+ *
+ * @param {Actor5e} actor The actor to inspect.
+ * @param {NutritionConfig} nutritionConfig The actor's nutrition config.
+ * @returns {number} The saving throw DC.
+ */
+export function getNutritionSaveDC(actor, nutritionConfig) {
+  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+  return game.dnd5e.utils.simplifyBonus(
+    nutritionConfig.malnutritionDC ?? (legacy ? SAVE_DC_LEGACY : SAVE_DC_MODERN),
+    actor.getRollData()
+  );
 }
 
 /* -------------------------------------------- */

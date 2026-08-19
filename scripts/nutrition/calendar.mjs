@@ -1,6 +1,7 @@
 import { promptNutritionSave, postNutritionSummary } from "../chat/messages.mjs";
-import { EXHAUSTION_PATH, SAVE_DC_LEGACY, SAVE_DC_MODERN } from "../config.mjs";
+import { EXHAUSTION_PATH } from "../config.mjs";
 
+import { getNutritionSaveDC } from "./actor.mjs";
 import { computeNutrition, applyNutrition } from "./rest.mjs";
 
 /**
@@ -52,10 +53,6 @@ async function applyDayChange(actor) {
     penalty: state.penalty
   });
 
-  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
-  const dc = game.dnd5e.utils.simplifyBonus(
-    nutritionConfig.malnutritionDC ?? (legacy ? SAVE_DC_LEGACY : SAVE_DC_MODERN),
-    actor.getRollData()
-  );
+  const dc = getNutritionSaveDC(actor, nutritionConfig);
   if ( state.saveRequired ) await promptNutritionSave(actor, state.saveType, dc);
 }

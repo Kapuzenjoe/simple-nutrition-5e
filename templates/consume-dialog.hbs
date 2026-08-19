@@ -13,11 +13,11 @@
                 <span class="simple-nutrition-consume__summary-value" data-selected-amount>{{ selected }}</span>
             </div>
         </div>
-        {{#if showDaysWithoutFood}}
+        {{#if showStarvation}}
         <div class="form-group">
-            <label>{{ localize "SIMPLE_NUTRITION.Dialog.DaysWithoutFoodLabel" }}</label>
+            <label>{{ localize "SIMPLE_NUTRITION.Dialog.StarvationLabel" }}</label>
             <div class="form-fields">
-                <span class="simple-nutrition-consume__summary-value">{{ daysWithoutFood }}</span>
+                <span class="simple-nutrition-consume__summary-value">{{ starvation }}</span>
             </div>
         </div>
         {{/if}}

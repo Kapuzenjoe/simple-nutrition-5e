@@ -43,10 +43,10 @@ export async function consumeNutrition(actor, nutrition) {
    */
   const consumption = await NutritionConsumeDialog.consume(actor, {
     type: nutrition,
-    daysWithoutFood: isFood ? state.starvation : 0,
     items,
     required: formatNutritionAmount(nutrition, needs[nutrition]),
-    requiredValue: needs[nutrition]
+    requiredValue: needs[nutrition],
+    starvation: isFood ? state.starvation : 0
   });
   if ( !consumption ) return false;
 

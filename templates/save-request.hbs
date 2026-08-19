@@ -1,0 +1,10 @@
+<div class="chat-card request-card">
+    <div class="card-buttons">
+        {{#each buttons}}
+        <button type="button" {{#each dataset}}data-{{@key}}="{{this}}" {{/each}}>
+            <span class="visible-dc">{{{ buttonLabel }}}</span>
+            <span class="hidden-dc">{{{ hiddenLabel }}}</span>
+        </button>
+        {{/each}}
+    </div>
+</div>

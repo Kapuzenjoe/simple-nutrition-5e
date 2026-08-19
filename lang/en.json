@@ -15,7 +15,7 @@
       "SummaryLegend": "Summary",
       "LegendFood": "Food",
       "LegendWater": "Water",
-      "DaysWithoutFoodLabel": "Days without food",
+      "StarvationLabel": "Days without food",
       "FreshWater": "Fresh Water Source Available",
       "FreshWaterHint": "Drink from a fresh water source instead of consuming stored water.",
       "FreeFood": "Free Food Source Available",
