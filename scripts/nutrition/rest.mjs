@@ -19,6 +19,7 @@ import {
   getNutritionSaveDC,
   setNutritionState
 } from "./actor.mjs";
+import { isManualRecoveryActive } from "../utils.mjs";
 
 /**
  * Persist the nutrition state computed for a new day and toggle conditions accordingly.
@@ -74,7 +75,7 @@ export function computeNutrition(actor) {
 
   // Water
   const waterLow = trackWater && !waterHalf;
-  const waterDoubled = legacy && waterLow && ((foundry.utils.getProperty(actor, EXHAUSTION_PATH) ?? 0) >= 1);
+  const waterDoubled = legacy && waterLow && ((actor.system.attributes.exhaustion ?? 0) >= 1);
   const dehydrated = !legacy
     && (waterLow || (trackWater && actor.hasConditionEffect(CONDITION_EFFECT_DEHYDRATED) && !waterFull));
 
@@ -112,7 +113,7 @@ export function onPreRestCompleted(actor, result, config) {
   if ( (actor.type !== "character") || !config.newDay ) return;
 
   const legacy = game.dnd5e.settings.rulesVersion === "legacy";
-  const calendarMode = !(game.dnd5e.settings.calendarConfig?.manualRecovery ?? true);
+  const calendarMode = !isManualRecoveryActive();
 
   // Under calendar-driven recovery, modern conditions already block system recovery; legacy has no
   // condition to key off, so the day-change block (`exhaustionRecoveryBlocked`) is reapplied here.
@@ -120,7 +121,7 @@ export function onPreRestCompleted(actor, result, config) {
     if ( !legacy ) return;
     const { exhaustionRecoveryBlocked } = getNutritionFlag(actor);
     if ( !exhaustionRecoveryBlocked ) return;
-    const clone = foundry.utils.getProperty(result.clone, EXHAUSTION_PATH) ?? 0;
+    const clone = result.clone.system.attributes.exhaustion ?? 0;
     foundry.utils.mergeObject(result.updateData, {
       [EXHAUSTION_PATH]: Math.clamp(clone, 0, CONFIG.DND5E.conditionTypes.exhaustion.levels)
     });
@@ -131,7 +132,7 @@ export function onPreRestCompleted(actor, result, config) {
   const recoveryBlocked = legacy && (!state.foodFull || !state.waterFull);
 
   if ( recoveryBlocked || state.penalty ) {
-    const clone = foundry.utils.getProperty(result.clone, EXHAUSTION_PATH) ?? 0;
+    const clone = result.clone.system.attributes.exhaustion ?? 0;
     const exhaustion = recoveryBlocked ? clone : (foundry.utils.getProperty(result.updateData, EXHAUSTION_PATH) ?? clone);
     const max = CONFIG.DND5E.conditionTypes.exhaustion.levels;
 
@@ -154,7 +155,7 @@ export function onPreRestCompleted(actor, result, config) {
  * @returns {Promise<void>} A promise that resolves when nutrition updates finish.
  */
 export async function onRestCompleted(actor, result, config) {
-  if ( (actor.type !== "character") || !config.newDay || !(game.dnd5e.settings.calendarConfig?.manualRecovery ?? true) ) return;
+  if ( (actor.type !== "character") || !config.newDay || !isManualRecoveryActive() ) return;
 
   const state = result[MODULE_ID];
   if ( !state ) return;
@@ -164,16 +165,18 @@ export async function onRestCompleted(actor, result, config) {
 
   await applyNutrition(actor, state);
 
-  if ( result.message && (trackFood || trackWater) ) {await result.message.setFlag(MODULE_ID, "nutritionChat", {
-    food: previous.food,
-    water: previous.water,
-    trackFood,
-    trackWater,
-    starvation: state.starvation,
-    dehydrated: state.dehydrated,
-    malnourished: state.malnourished,
-    penalty: state.penalty
-  });}
+  if ( result.message && (trackFood || trackWater) ) {
+    await result.message.setFlag(MODULE_ID, "nutritionChat", {
+      food: previous.food,
+      water: previous.water,
+      trackFood,
+      trackWater,
+      starvation: state.starvation,
+      dehydrated: state.dehydrated,
+      malnourished: state.malnourished,
+      penalty: state.penalty
+    });
+  }
 
   const dc = getNutritionSaveDC(actor, nutritionConfig);
   if ( state.saveRequired ) await promptNutritionSave(actor, state.saveType, dc);

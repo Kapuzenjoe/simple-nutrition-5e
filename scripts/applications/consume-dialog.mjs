@@ -258,27 +258,14 @@ export default class NutritionConsumeDialog extends Dialog5e {
 
   /* -------------------------------------------- */
 
-  /**
-   * Clear the result when the dialog is dismissed without submission.
-   *
-   * @param {ApplicationClosingOptions} [options={}] Options which configure the close workflow.
-   * @returns {void}
-   * @protected
-   */
+  /** @override */
   _onClose(options={}) {
     if ( !options[MODULE_ID]?.submitted ) this.#result = null;
   }
 
   /* -------------------------------------------- */
 
-  /**
-   * Activate step controls after the dialog is rendered.
-   *
-   * @param {ApplicationRenderContext} context Context being rendered.
-   * @param {HandlebarsRenderOptions} options Options which configure application rendering behavior.
-   * @returns {Promise<void>} A promise that resolves when render handlers are attached.
-   * @protected
-   */
+  /** @inheritDoc */
   async _onRender(context, options) {
     await super._onRender(context, options);
     this.#restoreFormState();
@@ -312,14 +299,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
 
   /* -------------------------------------------- */
 
-  /**
-   * Prepare rendering context for the content section.
-   *
-   * @param {ApplicationRenderContext} context Context being prepared.
-   * @param {HandlebarsRenderOptions} options Options which configure application rendering behavior.
-   * @returns {Promise<ApplicationRenderContext>} The prepared content context.
-   * @protected
-   */
+  /** @inheritDoc */
   async _prepareContentContext(context, options) {
     context = await super._prepareContentContext(context, options);
     const legend = game.i18n.localize(this.type === "food"

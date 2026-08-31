@@ -1,5 +1,6 @@
 import { promptNutritionSave, postNutritionSummary } from "../chat/messages.mjs";
 import { EXHAUSTION_PATH } from "../config.mjs";
+import { isManualRecoveryActive } from "../utils.mjs";
 
 import { getNutritionSaveDC } from "./actor.mjs";
 import { computeNutrition, applyNutrition } from "./rest.mjs";
@@ -14,7 +15,7 @@ import { computeNutrition, applyNutrition } from "./rest.mjs";
  */
 export async function onUpdateWorldTime(worldTime, deltaTime, options) {
   if ( !game.user.isActiveGM ) return;
-  if ( game.dnd5e.settings.calendarConfig?.manualRecovery ?? true ) return;
+  if ( isManualRecoveryActive() ) return;
   if ( !(options.dnd5e?.deltas?.midnights > 0) ) return;
 
   // Track the primary party's characters when one is configured; fall back to every character actor otherwise.
@@ -35,7 +36,7 @@ async function applyDayChange(actor) {
   if ( !trackFood && !trackWater ) return;
 
   if ( state.penalty ) {
-    const exhaustion = foundry.utils.getProperty(actor, EXHAUSTION_PATH) ?? 0;
+    const exhaustion = actor.system.attributes.exhaustion ?? 0;
     const max = CONFIG.DND5E.conditionTypes.exhaustion.levels;
     await actor.update({ [EXHAUSTION_PATH]: Math.clamp(exhaustion + state.penalty, 0, max) });
   }

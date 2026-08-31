@@ -9,6 +9,7 @@
  * @property {number} starvation The consecutive number of days without food.
  * @property {boolean} foodConditionRemoved Whether malnutrition was removed after meeting today's food requirement.
  * @property {boolean} waterConditionRemoved Whether dehydration was removed after meeting today's water requirement.
+ * @property {boolean} exhaustionRecoveryBlocked Whether the long rest exhaustion reduction is suppressed because the previous day's requirements were unmet (legacy rules only).
  */
 
 /**

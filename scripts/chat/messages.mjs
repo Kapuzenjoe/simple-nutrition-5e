@@ -153,7 +153,7 @@ async function onApplyNutritionFailure(message, flag, button) {
   const actor = await fromUuid(flag.actorUuid);
   if ( !actor?.testUserPermission(game.user, "OWNER") ) return;
   button.disabled = true;
-  const exhaustion = foundry.utils.getProperty(actor, EXHAUSTION_PATH) ?? 0;
+  const exhaustion = actor.system.attributes.exhaustion ?? 0;
   const max = CONFIG.DND5E.conditionTypes.exhaustion.levels;
   const amount = ((flag.type === "water") && (exhaustion >= 1)) ? 2 : 1;
   await actor.update({ [EXHAUSTION_PATH]: Math.clamp(exhaustion + amount, 0, max) });
@@ -198,14 +198,18 @@ async function renderNutritionRows(chat) {
   if ( chat.malnourished ) statuses.push(game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_MALNUTRITION].name));
 
   const rows = [];
-  if ( chat.trackFood && (chat.food < 1) ) {rows.push({
-    label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"),
-    icon: chat.food >= 0.5 ? "fa-minus" : "fa-xmark"
-  });}
-  if ( chat.trackWater && (chat.water < 1) ) {rows.push({
-    label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"),
-    icon: chat.water >= 0.5 ? "fa-minus" : "fa-xmark"
-  });}
+  if ( chat.trackFood && (chat.food < 1) ) {
+    rows.push({
+      label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"),
+      icon: chat.food >= 0.5 ? "fa-minus" : "fa-xmark"
+    });
+  }
+  if ( chat.trackWater && (chat.water < 1) ) {
+    rows.push({
+      label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"),
+      icon: chat.water >= 0.5 ? "fa-minus" : "fa-xmark"
+    });
+  }
   if ( chat.starvation > 0 ) rows.push({ label: game.i18n.localize("SIMPLE_NUTRITION.Chat.StarvationLabel"), value: String(chat.starvation) });
   if ( chat.penalty > 0 ) rows.push({ label: game.i18n.localize("SIMPLE_NUTRITION.Chat.ExhaustionLabel"), value: `+${chat.penalty}` });
   if ( statuses.length ) rows.push({ label: game.i18n.localize("DND5E.Conditions"), value: statuses.join(", ") });

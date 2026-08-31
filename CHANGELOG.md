@@ -2,8 +2,8 @@
 
 ## Version 1.0.0
 
-- Added calendar-driven nutrition tracking for `dnd5e` 6.0.0+:
-    - Follows the system's daily recovery setting. With calendar-driven recovery active, nutrition is now evaluated once per calendar midnight instead of during a long rest.
+- Added calendar-driven nutrition tracking:
+    - Active on `dnd5e` 6.0.0+ when the system's calendar handles daily recovery, or when the Ember module is active. Nutrition is then evaluated once per calendar midnight instead of during a long rest.
     - Tracks the primary party's characters when one is configured, otherwise every character actor.
     - Posts a separate summary message per actor.
 - Added support for the dnd5e Legacy (2014) ruleset, automatically detected via the system's `rulesVersion` setting:
