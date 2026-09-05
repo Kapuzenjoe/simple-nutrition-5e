@@ -32,6 +32,7 @@
  * @property {number} penalty The automatic exhaustion levels to apply for this day.
  * @property {boolean} foodFull Whether today's food requirement was fully met.
  * @property {boolean} waterFull Whether today's water requirement was fully met.
+ * @property {number} exhaustionBefore The actor's Exhaustion level before today's own changes (used for legacy water-penalty doubling).
  */
 
 /**

@@ -55,5 +55,5 @@ async function applyDayChange(actor) {
   });
 
   const dc = getNutritionSaveDC(actor, nutritionConfig);
-  if ( state.saveRequired ) await promptNutritionSave(actor, state.saveType, dc);
+  if ( state.saveRequired ) await promptNutritionSave(actor, state.saveType, dc, state.exhaustionBefore);
 }

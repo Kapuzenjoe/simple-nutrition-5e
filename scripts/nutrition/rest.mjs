@@ -1,5 +1,6 @@
 /**
  * @import { NutritionConfig, NutritionRestState, NutritionState } from "../_types.mjs";
+ * @import { RestConfiguration, RestResult } from "dnd5e/module/documents/_types.mjs";
  */
 
 import { promptNutritionSave } from "../chat/messages.mjs";
@@ -36,11 +37,27 @@ export async function applyNutrition(actor, state) {
     starvation: state.starvation,
     foodConditionRemoved: false,
     waterConditionRemoved: false,
-    exhaustionRecoveryBlocked: legacy && (!state.foodFull || !state.waterFull)
+    exhaustionRecoveryBlocked: legacy && isExhaustionRecoveryBlocked(actor, state)
   });
 
   await actor.toggleStatusEffect(CONDITION_DEHYDRATION, { active: state.dehydrated });
   await actor.toggleStatusEffect(CONDITION_MALNUTRITION, { active: state.malnourished });
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Determine whether the legacy exhaustion-recovery block should remain (or become) active for a day transition.
+ * Exhaustion caused by insufficient food or water can't be removed until both are fully met for a day.
+ *
+ * @param {Actor5e} actor The actor being evaluated.
+ * @param {NutritionRestState} state The computed nutrition state for the transition.
+ * @returns {boolean}
+ */
+function isExhaustionRecoveryBlocked(actor, state) {
+  if ( state.foodFull && state.waterFull ) return false;
+  const { exhaustionRecoveryBlocked } = getNutritionFlag(actor);
+  return exhaustionRecoveryBlocked || (state.penalty > 0);
 }
 
 /* -------------------------------------------- */
@@ -75,12 +92,13 @@ export function computeNutrition(actor) {
 
   // Water
   const waterLow = trackWater && !waterHalf;
-  const waterDoubled = legacy && waterLow && ((actor.system.attributes.exhaustion ?? 0) >= 1);
+  const exhaustionBefore = actor.system.attributes.exhaustion ?? 0;
+  const waterDoubled = legacy && waterLow && (exhaustionBefore >= 1);
   const dehydrated = !legacy
     && (waterLow || (trackWater && actor.hasConditionEffect(CONDITION_EFFECT_DEHYDRATED) && !waterFull));
 
   const penalty = (foodAutomatic ? 1 : 0) + (waterLow ? (waterDoubled ? 2 : 1) : 0);
-  const saveRequired = legacy ? (trackWater && waterHalf && !waterFull) : (trackFood && !foodHalf);
+  const saveRequired = legacy ? (trackWater && waterHalf && !waterFull) : (trackFood && !foodHalf && !foodAutomatic);
 
   /**
    * @type {NutritionRestState}
@@ -93,7 +111,8 @@ export function computeNutrition(actor) {
     saveType: legacy ? "water" : "food",
     penalty,
     foodFull,
-    waterFull
+    waterFull,
+    exhaustionBefore
   };
 
   return { nutritionConfig, trackFood, trackWater, previous, state };
@@ -129,7 +148,7 @@ export function onPreRestCompleted(actor, result, config) {
   }
 
   const { state } = computeNutrition(actor);
-  const recoveryBlocked = legacy && (!state.foodFull || !state.waterFull);
+  const recoveryBlocked = legacy && isExhaustionRecoveryBlocked(actor, state);
 
   if ( recoveryBlocked || state.penalty ) {
     const clone = result.clone.system.attributes.exhaustion ?? 0;
@@ -179,5 +198,5 @@ export async function onRestCompleted(actor, result, config) {
   }
 
   const dc = getNutritionSaveDC(actor, nutritionConfig);
-  if ( state.saveRequired ) await promptNutritionSave(actor, state.saveType, dc);
+  if ( state.saveRequired ) await promptNutritionSave(actor, state.saveType, dc, state.exhaustionBefore);
 }

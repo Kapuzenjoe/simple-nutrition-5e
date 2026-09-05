@@ -61,6 +61,7 @@
       "FoodPerDay": "Food per Day",
       "WaterPerDay": "Water per Day",
       "StarvationLimit": "Days Without Food",
+      "StarvationLimitLegacy": "Safe Days Without Food",
       "DefaultValue": "Default: {value}",
       "DefaultDays": "Default: {days} days",
       "SaveDC": "Save DC",

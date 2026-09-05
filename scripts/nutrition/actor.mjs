@@ -45,6 +45,18 @@ export function formatNutritionAmount(type, value, { withUnit = true }={}) {
 /* -------------------------------------------- */
 
 /**
+ * Get the localized short abbreviation for a US gallon, matching what Intl's unit formatting produces.
+ *
+ * @returns {string} The localized gallon abbreviation.
+ */
+export function getGallonAbbreviation() {
+  const parts = new Intl.NumberFormat(game.i18n.lang, { style: "unit", unit: "gallon", unitDisplay: "short" }).formatToParts(1);
+  return parts.find(part => part.type === "unit")?.value ?? "gal";
+}
+
+/* -------------------------------------------- */
+
+/**
  * Get the nutrition amount provided by one item.
  *
  * @param {Actor5e} actor The owning actor.
@@ -70,7 +82,7 @@ export function getNutritionAmount(actor, type, item) {
  */
 export function getNutritionAmountLabel(actor, type, item) {
   if ( (type === "food") && (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) ) {
-    return game.i18n.localize("SIMPLE_NUTRITION.Dialog.AmountFullDay");
+    return _loc("SIMPLE_NUTRITION.Dialog.AmountFullDay");
   }
   return formatNutritionAmount(type, getNutritionAmount(actor, type, item));
 }

@@ -9,15 +9,16 @@ import {
 } from "../config.mjs";
 import {
   formatNutritionAmount,
+  getGallonAbbreviation,
   getNutritionConfig,
   setNutritionConfig
 } from "../nutrition/actor.mjs";
 
-const BaseConfigSheet = game.dnd5e.applications.actor.BaseConfigSheetV2;
+const BaseConfigSheet = globalThis.dnd5e.applications.actor.BaseConfigSheetV2;
 
 const { BooleanField, NumberField } = foundry.data.fields;
-const { FormulaField } = game.dnd5e.dataModels.fields;
-const { convertWeight, defaultUnits } = game.dnd5e.utils;
+const { FormulaField } = globalThis.dnd5e.dataModels.fields;
+const { convertWeight, defaultUnits } = globalThis.dnd5e.utils;
 
 /**
  * Configuration application for nutrition overrides on a character actor.
@@ -40,7 +41,7 @@ export default class NutritionConfig extends BaseConfigSheet {
 
   /** @override */
   get title() {
-    return game.i18n.localize("SIMPLE_NUTRITION.Config.Title");
+    return _loc("SIMPLE_NUTRITION.Config.Title");
   }
 
   /* -------------------------------------------- */
@@ -72,7 +73,7 @@ export default class NutritionConfig extends BaseConfigSheet {
       )
     };
     const foodUnitLabel = CONFIG.DND5E.weightUnits[weightUnit]?.abbreviation ?? weightUnit;
-    const waterUnitLabel = metricVolume ? CONFIG.DND5E.volumeUnits.liter.abbreviation : "gal";
+    const waterUnitLabel = metricVolume ? CONFIG.DND5E.volumeUnits.liter.abbreviation : getGallonAbbreviation();
     context.data = {
       trackFood: config.trackFood !== false,
       trackWater: config.trackWater !== false,
@@ -94,19 +95,19 @@ export default class NutritionConfig extends BaseConfigSheet {
         nullable: true,
         min: 0,
         initial: null,
-        label: `${game.i18n.localize("SIMPLE_NUTRITION.Config.FoodPerDay")} (${foodUnitLabel})`
+        label: `${_loc("SIMPLE_NUTRITION.Config.FoodPerDay")} (${foodUnitLabel})`
       }),
       waterPerDay: new NumberField({
         nullable: true,
         min: 0,
         initial: null,
-        label: `${game.i18n.localize("SIMPLE_NUTRITION.Config.WaterPerDay")} (${waterUnitLabel})`
+        label: `${_loc("SIMPLE_NUTRITION.Config.WaterPerDay")} (${waterUnitLabel})`
       }),
       starvationLimit: new FormulaField({
         deterministic: true,
         nullable: true,
         initial: null,
-        label: "SIMPLE_NUTRITION.Config.StarvationLimit"
+        label: legacy ? "SIMPLE_NUTRITION.Config.StarvationLimitLegacy" : "SIMPLE_NUTRITION.Config.StarvationLimit"
       }),
       malnutritionDC: new FormulaField({
         deterministic: true,
@@ -127,18 +128,18 @@ export default class NutritionConfig extends BaseConfigSheet {
       starvationLimit: defaults.starvation.toLocaleString(game.i18n.lang)
     };
     context.hints = {
-      trackFood: game.i18n.localize("SIMPLE_NUTRITION.Config.TrackFoodHint"),
-      trackWater: game.i18n.localize("SIMPLE_NUTRITION.Config.TrackWaterHint"),
-      foodPerDay: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultValue", {
+      trackFood: _loc("SIMPLE_NUTRITION.Config.TrackFoodHint"),
+      trackWater: _loc("SIMPLE_NUTRITION.Config.TrackWaterHint"),
+      foodPerDay: _loc("SIMPLE_NUTRITION.Config.DefaultValue", {
         value: formatNutritionAmount("food", defaults.food)
       }),
-      waterPerDay: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultValue", {
+      waterPerDay: _loc("SIMPLE_NUTRITION.Config.DefaultValue", {
         value: formatNutritionAmount("water", defaults.water)
       }),
-      malnutritionDC: game.i18n.localize(legacy
+      malnutritionDC: _loc(legacy
         ? "SIMPLE_NUTRITION.Config.SaveDCHintWater"
         : "SIMPLE_NUTRITION.Config.SaveDCHintFood"),
-      starvationLimit: game.i18n.format("SIMPLE_NUTRITION.Config.DefaultDays", {
+      starvationLimit: _loc("SIMPLE_NUTRITION.Config.DefaultDays", {
         days: context.placeholders.starvationLimit
       })
     };

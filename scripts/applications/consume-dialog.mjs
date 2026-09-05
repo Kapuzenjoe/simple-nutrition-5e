@@ -5,23 +5,13 @@
 import { MODULE_ID } from "../config.mjs";
 import { formatNutritionAmount, getNutritionCandidate } from "../nutrition/actor.mjs";
 
-const Dialog5e = game.dnd5e.applications.api.Dialog5e;
+const Dialog5e = globalThis.dnd5e.applications.api.Dialog5e;
 const { BooleanField } = foundry.data.fields;
 
 /**
  * Dialog for choosing food or water items to consume.
  */
 export default class NutritionConsumeDialog extends Dialog5e {
-  constructor(options={}) {
-    super(options);
-    this.#actor = options.document;
-    this.#starvation = options.starvation ?? 0;
-    this.#items = options.items;
-    this.#required = options.required ?? "";
-    this.#requiredValue = options.requiredValue ?? 0;
-    this.#type = options.type;
-  }
-
   /** @override */
   static DEFAULT_OPTIONS = {
     actions: {
@@ -37,7 +27,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     }, {
       action: "close",
       icon: "fa-solid fa-times",
-      label: game.i18n.localize("Cancel"),
+      label: "Cancel",
       type: "button"
     }],
     document: null,
@@ -91,7 +81,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
     }, []);
 
     if ( !entries.length && !freshWater && !freeFood ) {
-      ui.notifications.warn(game.i18n.localize(this.type === "food"
+      ui.notifications.warn(_loc(this.type === "food"
         ? "SIMPLE_NUTRITION.Dialog.WarningSelectFood"
         : "SIMPLE_NUTRITION.Dialog.WarningSelectWater"));
       return;
@@ -100,11 +90,11 @@ export default class NutritionConsumeDialog extends Dialog5e {
     for ( const entry of entries ) {
       const item = this.actor.items.get(entry.itemId);
       if ( !item ) {
-        ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningItemMissing"));
+        ui.notifications.warn(_loc("SIMPLE_NUTRITION.Dialog.WarningItemMissing"));
         return;
       }
       if ( entry.quantity > item.system.quantity ) {
-        ui.notifications.warn(game.i18n.format("SIMPLE_NUTRITION.Dialog.WarningNotEnough", {
+        ui.notifications.warn(_loc("SIMPLE_NUTRITION.Dialog.WarningNotEnough", {
           item: item.name
         }));
         return;
@@ -163,14 +153,8 @@ export default class NutritionConsumeDialog extends Dialog5e {
   }
 
   /**
-   * Actor consuming the selected items.
-   * @type {Actor5e}
-   */
-  #actor;
-
-  /**
    * Local form state preserved across re-renders.
-   * @type {{ freshWater: boolean, quantities: Record<string, number> }}
+   * @type {{ freshWater: boolean, freeFood: boolean, quantities: Record<string, number> }}
    */
   #formState = {
     freshWater: false,
@@ -185,75 +169,79 @@ export default class NutritionConsumeDialog extends Dialog5e {
   #items;
 
   /**
-   * Localized required amount for the day.
-   * @type {string}
-   */
-  #required;
-
-  /**
-   * Numeric required amount for the day.
-   * @type {number}
-   */
-  #requiredValue;
-
-  /**
    * Dialog result.
    * @type {NutritionConsumption|null}
    */
   #result = null;
 
-  /**
-   * Accumulated starvation counter (fractional under legacy rules).
-   * @type {number}
-   */
-  #starvation;
-
-  /**
-   * Type of nutrition being consumed.
-   * @type {NutritionType}
-   */
-  #type;
-
   /* -------------------------------------------- */
 
+  /**
+   * Actor consuming the selected items.
+   * @type {Actor5e}
+   */
   get actor() {
-    return this.#actor;
+    return this.options.document;
   }
 
   /* -------------------------------------------- */
 
+  /**
+   * Candidate items to display in the dialog.
+   * @type {NutritionCandidate[]}
+   */
   get items() {
     return this.#items;
   }
 
   /* -------------------------------------------- */
 
+  /**
+   * Localized required amount for the day.
+   * @type {string}
+   */
   get required() {
-    return this.#required;
+    return this.options.required ?? "";
   }
 
   /* -------------------------------------------- */
 
+  /**
+   * Numeric required amount for the day.
+   * @type {number}
+   */
   get requiredValue() {
-    return this.#requiredValue;
+    return this.options.requiredValue ?? 0;
   }
 
   /* -------------------------------------------- */
 
+  /**
+   * Dialog result.
+   * @type {NutritionConsumption|null}
+   */
   get result() {
     return this.#result;
   }
 
   /* -------------------------------------------- */
 
+  /**
+   * Accumulated starvation counter (fractional under legacy rules).
+   * @type {number}
+   */
   get starvation() {
-    return this.#starvation;
+    return this.options.starvation ?? 0;
   }
 
   /* -------------------------------------------- */
 
+  /**
+   * Type of nutrition being consumed.
+   * @type {NutritionType}
+   */
   get type() {
-    return this.#type;
+    return this.options.type;
   }
 
   /* -------------------------------------------- */
@@ -302,15 +290,16 @@ export default class NutritionConsumeDialog extends Dialog5e {
   /** @inheritDoc */
   async _prepareContentContext(context, options) {
     context = await super._prepareContentContext(context, options);
-    const legend = game.i18n.localize(this.type === "food"
+    this.#items ??= [...this.options.items];
+    const legend = _loc(this.type === "food"
       ? "SIMPLE_NUTRITION.Dialog.LegendFood"
       : "SIMPLE_NUTRITION.Dialog.LegendWater");
     const nutritionItems = this.items.map(item => ({
       ...item,
-      owned: game.i18n.format("SIMPLE_NUTRITION.Dialog.Owned", { quantity: item.quantity }),
-      amountLabel: item.amount ? game.i18n.format("SIMPLE_NUTRITION.Dialog.Each", { amount: item.amount }) : null,
-      decreaseLabel: game.i18n.format("SIMPLE_NUTRITION.Dialog.Decrease", { item: item.name }),
-      increaseLabel: game.i18n.format("SIMPLE_NUTRITION.Dialog.Increase", { item: item.name })
+      owned: _loc("SIMPLE_NUTRITION.Dialog.Owned", { quantity: item.quantity }),
+      amountLabel: item.amount ? _loc("SIMPLE_NUTRITION.Dialog.Each", { amount: item.amount }) : null,
+      decreaseLabel: _loc("SIMPLE_NUTRITION.Dialog.Decrease", { item: item.name }),
+      increaseLabel: _loc("SIMPLE_NUTRITION.Dialog.Increase", { item: item.name })
     }));
 
     context.starvation = this.starvation;
@@ -320,8 +309,8 @@ export default class NutritionConsumeDialog extends Dialog5e {
       freeFood: new BooleanField({ label: "SIMPLE_NUTRITION.Dialog.FreeFood" })
     };
     context.hints = {
-      freshWater: game.i18n.localize("SIMPLE_NUTRITION.Dialog.FreshWaterHint"),
-      freeFood: game.i18n.localize("SIMPLE_NUTRITION.Dialog.FreeFoodHint")
+      freshWater: _loc("SIMPLE_NUTRITION.Dialog.FreshWaterHint"),
+      freeFood: _loc("SIMPLE_NUTRITION.Dialog.FreeFoodHint")
     };
     context.legend = legend;
     context.moduleId = MODULE_ID;
@@ -369,17 +358,17 @@ export default class NutritionConsumeDialog extends Dialog5e {
 
     const item = await Item.implementation.fromDropData(data);
     if ( !item || (item.parent?.uuid !== this.actor.uuid) || (item.type !== "consumable") ) {
-      ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningDropInvalid"));
+      ui.notifications.warn(_loc("SIMPLE_NUTRITION.Dialog.WarningDropInvalid"));
       return;
     }
 
     if ( !Number(item.system.quantity) ) {
-      ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningDropEmpty"));
+      ui.notifications.warn(_loc("SIMPLE_NUTRITION.Dialog.WarningDropEmpty"));
       return;
     }
 
     if ( this.items.some(entry => entry.id === item.id) ) {
-      ui.notifications.warn(game.i18n.localize("SIMPLE_NUTRITION.Dialog.WarningDropDuplicate"));
+      ui.notifications.warn(_loc("SIMPLE_NUTRITION.Dialog.WarningDropDuplicate"));
       return;
     }
 

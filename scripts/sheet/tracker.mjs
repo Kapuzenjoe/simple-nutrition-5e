@@ -1,3 +1,7 @@
+/**
+ * @import { NutritionState, NutritionType } from "../_types.mjs";
+ */
+
 import NutritionConfig from "../applications/nutrition-config.mjs";
 import {
   CONDITION_DEHYDRATION,
@@ -26,7 +30,7 @@ export function onRenderCharacterActorSheet(app, html) {
   if ( !anchor ) return;
 
   const configurable = app.isEditable && !!(app.isEditMode ?? app.isEditable);
-  anchor.insertAdjacentHTML("afterend", trackerHTML(actor, app.isEditable, configurable));
+  anchor.insertAdjacentHTML("afterend", renderTracker(actor, app.isEditable, configurable));
 
   for ( const button of html.querySelectorAll(".simple-nutrition [data-nutrition]") ) {
     button.addEventListener("click", event => onToggleNutrition(actor, event));
@@ -51,7 +55,7 @@ export function registerTidyNutritionContent(api) {
   api.registerCharacterContent(new api.models.HtmlContent({
     html: context => {
       const editable = context.editable ?? context.actor?.isOwner ?? false;
-      return tidyTrackerHTML(context.actor, editable, editable && !!context.unlocked);
+      return renderTidyTracker(context.actor, editable, editable && !!context.unlocked);
     },
     injectParams: {
       selector: headerActionsSelector,
@@ -87,19 +91,19 @@ function buildTrackerContext(actor) {
   const needs = getNutritionNeeds(actor);
   const trackFood = config.trackFood !== false;
   const trackWater = config.trackWater !== false;
-  const configTooltip = foundry.utils.escapeHTML(game.i18n.localize("SIMPLE_NUTRITION.Config.Configure"));
+  const configTooltip = foundry.utils.escapeHTML(_loc("SIMPLE_NUTRITION.Config.Configure"));
   const foodTooltip = foundry.utils.escapeHTML(trackFood
-    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
+    ? _loc("SIMPLE_NUTRITION.Tracker.FoodTooltip", {
       current: formatNutritionAmount("food", state.food * needs.food),
       required: formatNutritionAmount("food", needs.food)
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip"));
+    : _loc("SIMPLE_NUTRITION.Tracker.FoodNotRequiredTooltip"));
   const waterTooltip = foundry.utils.escapeHTML(trackWater
-    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
+    ? _loc("SIMPLE_NUTRITION.Tracker.WaterTooltip", {
       current: formatNutritionAmount("water", state.water * needs.water),
       required: formatNutritionAmount("water", needs.water)
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip"));
+    : _loc("SIMPLE_NUTRITION.Tracker.WaterNotRequiredTooltip"));
 
   return { state, needs, trackFood, trackWater, configTooltip, foodTooltip, waterTooltip };
 }
@@ -118,7 +122,7 @@ function buildTrackerContext(actor) {
  * @param {string} progress The localized progress text.
  * @returns {string} The rendered button markup.
  */
-function nutritionButtonHTML(type, editable, track, active, tooltip, label, progress) {
+function renderNutritionButton(type, editable, track, active, tooltip, label, progress) {
   const icon = type === "food" ? "fa-drumstick-bite" : "fa-glass-water";
   return `
     <button
@@ -149,9 +153,7 @@ function onConfigureNutrition(app, event) {
   event.preventDefault();
   event.stopPropagation();
 
-  const config = new NutritionConfig({ document: app.actor });
-  if ( typeof app._renderChild === "function" ) return void app._renderChild(config);
-  void config.render(true);
+  app.renderChild(new NutritionConfig({ document: app.actor }));
 }
 
 /* -------------------------------------------- */
@@ -176,10 +178,10 @@ async function onToggleNutrition(actor, event) {
     const needs = getNutritionNeeds(actor);
     const action = await foundry.applications.api.DialogV2.confirm({
       content: `
-        <p><strong>${foundry.utils.escapeHTML(game.i18n.format("SIMPLE_NUTRITION.Dialog.ManageCurrent", {
+        <p><strong>${foundry.utils.escapeHTML(_loc("SIMPLE_NUTRITION.Dialog.ManageCurrent", {
           amount: formatNutritionAmount(nutrition, state[nutrition] * needs[nutrition])
         }))}</strong></p>
-      <p class="hint">${foundry.utils.escapeHTML(game.i18n.localize(
+      <p class="hint">${foundry.utils.escapeHTML(_loc(
         isFood
           ? "SIMPLE_NUTRITION.Dialog.ManageHintFood"
           : "SIMPLE_NUTRITION.Dialog.ManageHintWater"
@@ -233,7 +235,7 @@ async function onToggleNutrition(actor, event) {
  * @param {string} tooltip The escaped tooltip text.
  * @returns {string} The rendered button markup.
  */
-function tidyNutritionButtonHTML(type, editable, track, ready, tooltip) {
+function renderTidyNutritionButton(type, editable, track, ready, tooltip) {
   const icon = type === "food" ? "fa-drumstick-bite" : "fa-glass-water";
   return `
     <button
@@ -260,12 +262,12 @@ function tidyNutritionButtonHTML(type, editable, track, ready, tooltip) {
  * @param {boolean} configurable Whether the configure button should be rendered.
  * @returns {string} The rendered tracker markup.
  */
-function tidyTrackerHTML(actor, editable, configurable) {
+function renderTidyTracker(actor, editable, configurable) {
   const { state, trackFood, trackWater, configTooltip, foodTooltip, waterTooltip } = buildTrackerContext(actor);
 
   return `
-    ${tidyNutritionButtonHTML("food", editable, trackFood, state.food >= 1, foodTooltip)}
-    ${tidyNutritionButtonHTML("water", editable, trackWater, state.water >= 1, waterTooltip)}
+    ${renderTidyNutritionButton("food", editable, trackFood, state.food >= 1, foodTooltip)}
+    ${renderTidyNutritionButton("water", editable, trackWater, state.water >= 1, waterTooltip)}
 
     ${configurable ? `
       <button
@@ -292,25 +294,25 @@ function tidyTrackerHTML(actor, editable, configurable) {
  * @param {boolean} configurable Whether the configure button should be rendered.
  * @returns {string} The rendered tracker markup.
  */
-function trackerHTML(actor, editable, configurable) {
+function renderTracker(actor, editable, configurable) {
   const { state, needs, trackFood, trackWater, configTooltip, foodTooltip, waterTooltip } = buildTrackerContext(actor);
   const foodProgress = trackFood
-    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
+    ? _loc("SIMPLE_NUTRITION.Tracker.Progress", {
       current: formatNutritionAmount("food", state.food * needs.food, { withUnit: false }),
       required: formatNutritionAmount("food", needs.food, { withUnit: false })
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.NotRequired");
+    : _loc("SIMPLE_NUTRITION.Tracker.NotRequired");
   const waterProgress = trackWater
-    ? game.i18n.format("SIMPLE_NUTRITION.Tracker.Progress", {
+    ? _loc("SIMPLE_NUTRITION.Tracker.Progress", {
       current: formatNutritionAmount("water", state.water * needs.water, { withUnit: false }),
       required: formatNutritionAmount("water", needs.water, { withUnit: false })
     })
-    : game.i18n.localize("SIMPLE_NUTRITION.Tracker.NotRequired");
+    : _loc("SIMPLE_NUTRITION.Tracker.NotRequired");
 
   return `
     <div class="meter-group simple-nutrition">
       <div class="label roboto-condensed-upper">
-        <span>${game.i18n.localize("SIMPLE_NUTRITION.Tracker.Title")}</span>
+        <span>${_loc("SIMPLE_NUTRITION.Tracker.Title")}</span>
         ${configurable ? `
           <button
             type="button"
@@ -325,10 +327,10 @@ function trackerHTML(actor, editable, configurable) {
       </div>
 
       <div class="simple-nutrition__row">
-        ${nutritionButtonHTML("food", editable, trackFood, state.food >= 1, foodTooltip,
-          game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"), foodProgress)}
-        ${nutritionButtonHTML("water", editable, trackWater, state.water >= 1, waterTooltip,
-          game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"), waterProgress)}
+        ${renderNutritionButton("food", editable, trackFood, state.food >= 1, foodTooltip,
+          _loc("SIMPLE_NUTRITION.Tracker.Food"), foodProgress)}
+        ${renderNutritionButton("water", editable, trackWater, state.water >= 1, waterTooltip,
+          _loc("SIMPLE_NUTRITION.Tracker.Water"), waterProgress)}
       </div>
     </div>
   `;

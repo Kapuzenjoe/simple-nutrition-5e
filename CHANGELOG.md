@@ -2,23 +2,18 @@
 
 ## Version 1.0.0
 
-- Added calendar-driven nutrition tracking:
-    - Active on `dnd5e` 6.0.0+ when the system's calendar handles daily recovery, or when the Ember module is active. Nutrition is then evaluated once per calendar midnight instead of during a long rest.
-    - Tracks the primary party's characters when one is configured, otherwise every character actor.
-    - Posts a separate summary message per actor.
-- Added support for the dnd5e Legacy (2014) ruleset, automatically detected via the system's `rulesVersion` setting:
-    - Food: a fractional "days without food" counter (a full ration resets it, a half ration adds half a day, anything less adds a full day) triggers automatic Exhaustion once it exceeds the Constitution-modifier-based starvation threshold, with no saving throw.
-    - Water: drinking less than half the daily requirement causes automatic Exhaustion; drinking between half and the full requirement calls for a Constitution saving throw instead. Either case deals 2 levels of Exhaustion rather than 1 if the actor is already exhausted.
-    - Exhaustion caused by insufficient food or water still can't be recovered through rest until the full daily requirement is met, matching the existing modern-rules behavior.
-- The saving throw DC is now a formula field (e.g. `10 + @abilities.con.mod`) instead of a plain number, defaulting to DC 10 for the modern Malnutrition save or DC 15 for the Legacy Water save.
-- The starvation threshold is now a formula field as well, defaulting to 5 days under modern rules or `3 + Constitution modifier` (minimum 1) under Legacy rules.
+- Added calendar-driven nutrition tracking, evaluated once per calendar midnight instead of during a long rest, on `dnd5e` 6.0.0+ or when the Ember module is active. Tracks the primary party's characters when one is configured, otherwise every character actor.
+- Added support for the dnd5e Legacy (2014) ruleset, automatically detected via the system's rules version.
+- Added a pass/fail result shown inline on the saving throw roll button.
+- Added an "Exhaustion +N" row to rest and calendar nutrition summaries when automatic Exhaustion was applied.
+- Changed the saving throw DC to a formula field (e.g. `10 + @abilities.con.mod`) instead of a plain number.
+- Changed the starvation threshold to a formula field as well, instead of a plain number.
+- Changed rest and calendar nutrition summaries to skip posting when both food and water requirements are already met.
+- Fixed the saving throw roll button no longer responding to a second click.
+- Fixed the Malnutrition saving throw still being prompted once the automatic 5-day Exhaustion took over, applying Exhaustion twice in one day.
 - Fixed the malnutrition saving throw rolling against the selected token instead of the actor the request was actually for.
-- Fixed the saving throw roll button no longer responding to a second click:
-    - The button now also shows the pass/fail result inline with a colored state.
-    - The "Apply Malnutrition" button (now "Apply Exhaustion", since it also applies to the Legacy Water save) remains available for manual control.
-- Rest and calendar nutrition summaries are no longer posted when both food and water requirements are already met, reducing chat spam.
-- Rest and calendar nutrition summaries now show an "Exhaustion +N" row when automatic Exhaustion was applied for the day.
-- General optimizations and smaller fixes.
+- Fixed the saving throw button never showing its DC.
+- Renamed the "Apply Malnutrition" button to "Apply Exhaustion", since it also applies to the Legacy Water save.
 
 ## Version 0.5.0
 

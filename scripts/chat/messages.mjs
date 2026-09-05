@@ -8,6 +8,7 @@ import {
   EXHAUSTION_PATH,
   MODULE_ID
 } from "../config.mjs";
+import { setNutritionState } from "../nutrition/actor.mjs";
 
 /**
  * Attach the failed-save button handler on a nutrition save chat message.
@@ -19,6 +20,9 @@ import {
 export function onRenderNutritionSaveMessage(message, html) {
   const flag = message.getFlag(MODULE_ID, "nutritionSave");
   if ( !flag ) return;
+
+  html.classList.add("compact");
+  if ( message.shouldDisplayChallenge ) html.dataset.displayChallenge = "";
 
   const rollButton = html.querySelector("[data-action='rollNutritionSave']");
   if ( rollButton ) {
@@ -59,6 +63,21 @@ export async function onRenderRestChatMessage(message, html) {
 /* -------------------------------------------- */
 
 /**
+ * Apply the system's compact chat styling to the standalone nutrition summary card, since it uses no dnd5e
+ * chat message data model.
+ *
+ * @param {ChatMessage5e} message The rendered chat message.
+ * @param {HTMLElement} html The rendered message HTML.
+ * @returns {void}
+ */
+export function onRenderNutritionSummaryMessage(message, html) {
+  if ( !message.getFlag(MODULE_ID, "nutritionSummary") ) return;
+  html.classList.add("compact");
+}
+
+/* -------------------------------------------- */
+
+/**
  * Create a chat message summarizing nutrition intake for a new day, outside of the rest workflow.
  *
  * @param {Actor5e} actor The actor the summary applies to.
@@ -72,7 +91,8 @@ export async function postNutritionSummary(actor, chat) {
   return ChatMessage.implementation.create({
     content,
     whisper: game.users.filter(user => actor.testUserPermission(user, "OWNER")),
-    speaker: ChatMessage.implementation.getSpeaker({ actor })
+    speaker: ChatMessage.implementation.getSpeaker({ actor }),
+    flags: { [MODULE_ID]: { nutritionSummary: true } }
   });
 }
 
@@ -84,17 +104,18 @@ export async function postNutritionSummary(actor, chat) {
  * @param {Actor5e} actor The actor that must roll the save.
  * @param {NutritionType} type The nutrition type the save is for (food under modern rules, water under legacy rules).
  * @param {number} dc The save DC.
+ * @param {number} exhaustionBefore The actor's Exhaustion level before today's own changes, for legacy water doubling.
  * @returns {Promise<ChatMessage5e>} A promise that resolves to the created chat message.
  */
-export async function promptNutritionSave(actor, type, dc) {
+export async function promptNutritionSave(actor, type, dc, exhaustionBefore) {
   const { createRollLabel } = game.dnd5e.enrichers;
   const config = { type: "save", ability: "con", dc, format: "short", icon: true };
   const guidance = await foundry.applications.ux.TextEditor.enrichHTML(
-    game.i18n.localize(type === "food"
+    _loc(type === "food"
       ? "SIMPLE_NUTRITION.Rest.FoodSaveHint"
       : "SIMPLE_NUTRITION.Rest.WaterSaveHint")
   );
-  const applyLabel = `<i class="fa-solid fa-heart-circle-exclamation"></i> ${game.i18n.localize("SIMPLE_NUTRITION.Rest.ApplyExhaustion")}`;
+  const applyLabel = `<i class="fa-solid fa-heart-circle-exclamation"></i> ${_loc("SIMPLE_NUTRITION.Rest.ApplyExhaustion")}`;
   const request = await foundry.applications.handlebars.renderTemplate(
     "modules/simple-nutrition-5e/templates/save-request.hbs",
     {
@@ -113,9 +134,9 @@ export async function promptNutritionSave(actor, type, dc) {
   return ChatMessage.implementation.create({
     content: `<div class="card-content">${guidance}</div>${request}`,
     whisper: owners,
-    author: owners.find(user => !user.isGM)?.id,
+    author: game.user.isGM ? owners.find(user => !user.isGM)?.id : game.user.id,
     speaker: ChatMessage.implementation.getSpeaker({ actor }),
-    flags: { [MODULE_ID]: { nutritionSave: { actorUuid: actor.uuid, type } } }
+    flags: { [MODULE_ID]: { nutritionSave: { actorUuid: actor.uuid, type, exhaustionBefore } } }
   });
 }
 
@@ -129,10 +150,8 @@ export async function promptNutritionSave(actor, type, dc) {
  * @returns {void}
  */
 function markRollResult(button, success) {
-  const key = success ? "success" : "failure";
-  button.style.color = `var(--dnd5e-color-${key})`;
-  button.style.backgroundColor = `var(--dnd5e-color-${key}-background)`;
-  button.style.borderColor = `var(--dnd5e-color-${key})`;
+  button.classList.toggle("success", success);
+  button.classList.toggle("failure", !success);
   button.querySelector(".result-icon")?.remove();
   const icon = document.createElement("i");
   icon.className = `fa-solid result-icon ${success ? "fa-check" : "fa-xmark"}`;
@@ -145,7 +164,7 @@ function markRollResult(button, success) {
  * Apply exhaustion (and, for food under modern rules, the malnutrition condition) after a failed saving throw.
  *
  * @param {ChatMessage5e} message The originating chat message.
- * @param {{ actorUuid: string, type: NutritionType }} flag The nutrition save flag data.
+ * @param {{ actorUuid: string, type: NutritionType, exhaustionBefore: number }} flag The nutrition save flag data.
  * @param {HTMLElement} button The apply button that was clicked.
  * @returns {Promise<void>}
  */
@@ -155,9 +174,10 @@ async function onApplyNutritionFailure(message, flag, button) {
   button.disabled = true;
   const exhaustion = actor.system.attributes.exhaustion ?? 0;
   const max = CONFIG.DND5E.conditionTypes.exhaustion.levels;
-  const amount = ((flag.type === "water") && (exhaustion >= 1)) ? 2 : 1;
+  const amount = ((flag.type === "water") && ((flag.exhaustionBefore ?? exhaustion) >= 1)) ? 2 : 1;
   await actor.update({ [EXHAUSTION_PATH]: Math.clamp(exhaustion + amount, 0, max) });
   if ( flag.type === "food" ) await actor.toggleStatusEffect(CONDITION_MALNUTRITION, { active: true });
+  else await setNutritionState(actor, { exhaustionRecoveryBlocked: true });
   await message.setFlag(MODULE_ID, "nutritionSave", { ...flag, applied: true });
 }
 
@@ -194,25 +214,25 @@ async function onRollNutritionSave(message, flag, button) {
  */
 async function renderNutritionRows(chat) {
   const statuses = [];
-  if ( chat.dehydrated ) statuses.push(game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_DEHYDRATION].name));
-  if ( chat.malnourished ) statuses.push(game.i18n.localize(CONFIG.DND5E.conditionTypes[CONDITION_MALNUTRITION].name));
+  if ( chat.dehydrated ) statuses.push(_loc(CONFIG.DND5E.conditionTypes[CONDITION_DEHYDRATION].name));
+  if ( chat.malnourished ) statuses.push(_loc(CONFIG.DND5E.conditionTypes[CONDITION_MALNUTRITION].name));
 
   const rows = [];
   if ( chat.trackFood && (chat.food < 1) ) {
     rows.push({
-      label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Food"),
+      label: _loc("SIMPLE_NUTRITION.Tracker.Food"),
       icon: chat.food >= 0.5 ? "fa-minus" : "fa-xmark"
     });
   }
   if ( chat.trackWater && (chat.water < 1) ) {
     rows.push({
-      label: game.i18n.localize("SIMPLE_NUTRITION.Tracker.Water"),
+      label: _loc("SIMPLE_NUTRITION.Tracker.Water"),
       icon: chat.water >= 0.5 ? "fa-minus" : "fa-xmark"
     });
   }
-  if ( chat.starvation > 0 ) rows.push({ label: game.i18n.localize("SIMPLE_NUTRITION.Chat.StarvationLabel"), value: String(chat.starvation) });
-  if ( chat.penalty > 0 ) rows.push({ label: game.i18n.localize("SIMPLE_NUTRITION.Chat.ExhaustionLabel"), value: `+${chat.penalty}` });
-  if ( statuses.length ) rows.push({ label: game.i18n.localize("DND5E.Conditions"), value: statuses.join(", ") });
+  if ( chat.starvation > 0 ) rows.push({ label: _loc("SIMPLE_NUTRITION.Chat.StarvationLabel"), value: String(chat.starvation) });
+  if ( chat.penalty > 0 ) rows.push({ label: _loc("SIMPLE_NUTRITION.Chat.ExhaustionLabel"), value: `+${chat.penalty}` });
+  if ( statuses.length ) rows.push({ label: _loc("DND5E.Conditions"), value: statuses.join(", ") });
 
   if ( !rows.length ) return null;
   return foundry.applications.handlebars.renderTemplate("modules/simple-nutrition-5e/templates/rest-chat.hbs", { rows });

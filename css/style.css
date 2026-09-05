@@ -179,3 +179,20 @@
   color: var(--t5e-tertiary-color);
   text-shadow: none;
 }
+
+.message.compact:has(.request-card) .message-sender .avatar,
+.message.compact:has(.simple-nutrition-chat) .message-sender .avatar {
+  display: none;
+}
+
+.request-card button.success {
+  color: var(--dnd5e-color-success);
+  background-color: var(--dnd5e-color-success-background);
+  border-color: var(--dnd5e-color-success);
+}
+
+.request-card button.failure {
+  color: var(--dnd5e-color-failure);
+  background-color: var(--dnd5e-color-failure-background);
+  border-color: var(--dnd5e-color-failure);
+}
