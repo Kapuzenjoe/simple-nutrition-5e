@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.0.1
+
+- Added support for Calendaria calendar-driven nutrition tracking
+
 ## Version 1.0.0
 
 - Added calendar-driven nutrition tracking, evaluated once per calendar midnight instead of during a long rest, on `dnd5e` 6.0.0+ or when the Ember module is active. Tracks the primary party's characters when one is configured, otherwise every character actor.

@@ -4,6 +4,7 @@
  */
 export function isManualRecoveryActive() {
   if ( isEmberActive() ) return false;
+  if ( isCalendariaActive() ) return false;
   if ( !game.settings.settings.has("dnd5e.calendarConfig") ) return true;
   const cfg = game.settings.get("dnd5e", "calendarConfig");
   if ( !("dailyRecovery" in cfg) ) return true;
@@ -18,4 +19,14 @@ export function isManualRecoveryActive() {
  */
 function isEmberActive() {
   return game.modules.get("ember")?.active ?? false;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Whether the Calendaria module is active.
+ * @returns {boolean}
+ */
+function isCalendariaActive() {
+  return game.modules.get("calendaria")?.active ?? false;
 }
