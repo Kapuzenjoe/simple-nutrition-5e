@@ -30,7 +30,6 @@ import {
  */
 export async function consumeNutrition(actor, nutrition) {
   const isFood = nutrition === "food";
-  const state = getNutritionState(actor);
   const items = (nutrition === "food" ? getFoodCandidates(actor) : getWaterCandidates(actor))
     .map(item => getNutritionCandidate(actor, nutrition, item));
   const needs = getNutritionNeeds(actor);
@@ -46,7 +45,7 @@ export async function consumeNutrition(actor, nutrition) {
     items,
     required: formatNutritionAmount(nutrition, needs[nutrition]),
     requiredValue: needs[nutrition],
-    starvation: isFood ? state.starvation : 0
+    starvation: isFood ? getNutritionState(actor).starvation : 0
   });
   if ( !consumption ) return false;
 
@@ -60,11 +59,11 @@ export async function consumeNutrition(actor, nutrition) {
     }, 0) / needs[nutrition];
   if ( entries.length && !consumption.freshWater && !consumption.freeFood ) await consumeSelectedItems(actor, entries);
 
+  const state = getNutritionState(actor);
   const amount = state[nutrition] + consumed;
   const conditionRemoved = (amount >= 1) && actor.hasConditionEffect(conditionEffect);
 
   await setNutritionState(actor, {
-    ...state,
     [nutrition]: amount,
     [marker]: state[marker] || conditionRemoved
   });

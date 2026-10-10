@@ -36,3 +36,13 @@ export const EMPTY_NUTRITION_CONFIG = {
   starvationLimit: null,
   malnutritionDC: null
 };
+
+export const SETTING_KEYS = {
+  CALENDAR_MODE: "calendarMode"
+};
+
+export const CALENDAR_MODES = {
+  default: { label: "SIMPLE_NUTRITION.Settings.CalendarMode.Default" },
+  on: { label: "SIMPLE_NUTRITION.Settings.CalendarMode.On" },
+  off: { label: "SIMPLE_NUTRITION.Settings.CalendarMode.Off" }
+};

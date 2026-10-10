@@ -82,7 +82,7 @@ export function onRenderNutritionSummaryMessage(message, html) {
  *
  * @param {Actor5e} actor The actor the summary applies to.
  * @param {object} chat The nutrition summary data.
- * @returns {Promise<ChatMessage5e|null>} A promise that resolves to the created chat message, or null if there is nothing to report.
+ * @returns {Promise<ChatMessage5e|null>} A promise that resolves to the message, or null if there is nothing to report.
  */
 export async function postNutritionSummary(actor, chat) {
   const content = await renderNutritionRows(chat);
@@ -197,11 +197,16 @@ async function onRollNutritionSave(message, flag, button) {
   const actor = await fromUuid(flag.actorUuid);
   if ( !actor?.testUserPermission(game.user, "OWNER") ) return;
 
-  const rolls = await actor.rollSavingThrow({ ability: "con", target: Number(button.dataset.dc) });
-  if ( !rolls ) return;
+  button.disabled = true;
+  try {
+    const rolls = await actor.rollSavingThrow({ ability: "con", target: Number(button.dataset.dc) });
+    if ( !rolls ) return;
 
-  markRollResult(button, rolls[0].isSuccess);
-  await message.setFlag(MODULE_ID, "nutritionSave", { ...flag, success: rolls[0].isSuccess });
+    markRollResult(button, rolls[0].isSuccess);
+    await message.setFlag(MODULE_ID, "nutritionSave", { ...flag, success: rolls[0].isSuccess });
+  } finally {
+    button.disabled = false;
+  }
 }
 
 /* -------------------------------------------- */

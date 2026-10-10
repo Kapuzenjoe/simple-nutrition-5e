@@ -80,7 +80,7 @@ export default class NutritionConfig extends BaseConfigSheet {
       foodPerDay: (config.foodPerDay === null) ? null : convertWeight(config.foodPerDay, "lb", weightUnit),
       waterPerDay: (config.waterPerDay === null)
         ? null
-        : (metricVolume ? (config.waterPerDay * LITERS_PER_GALLON) : config.waterPerDay),
+        : (metricVolume ? (config.waterPerDay * LITERS_PER_GALLON).toNearest(0.001) : config.waterPerDay),
       starvationLimit: config.starvationLimit,
       malnutritionDC: config.malnutritionDC
     };
@@ -93,13 +93,13 @@ export default class NutritionConfig extends BaseConfigSheet {
       }),
       foodPerDay: new NumberField({
         nullable: true,
-        min: 0,
+        positive: true,
         initial: null,
         label: `${_loc("SIMPLE_NUTRITION.Config.FoodPerDay")} (${foodUnitLabel})`
       }),
       waterPerDay: new NumberField({
         nullable: true,
-        min: 0,
+        positive: true,
         initial: null,
         label: `${_loc("SIMPLE_NUTRITION.Config.WaterPerDay")} (${waterUnitLabel})`
       }),
@@ -181,12 +181,12 @@ export default class NutritionConfig extends BaseConfigSheet {
    * Normalize a numeric config value from form submission.
    *
    * @param {unknown} value The submitted value.
-   * @returns {number|null} The normalized numeric value.
+   * @returns {number|null} The normalized numeric value, or null if it is empty or not positive.
    */
   #normalizeNumber(value) {
     if ( (value === null) || (value === undefined) || (value === "") ) return null;
     const number = Number(value);
     if ( !Number.isFinite(number) ) return null;
-    return Math.max(number, 0);
+    return (number > 0) ? number : null;
   }
 }

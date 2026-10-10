@@ -1,5 +1,5 @@
 /**
- * @import { NutritionState, NutritionType } from "../_types.mjs";
+ * @import { NutritionState, NutritionTrackerContext, NutritionType } from "../_types.mjs";
  */
 
 import NutritionConfig from "../applications/nutrition-config.mjs";
@@ -11,6 +11,7 @@ import {
   formatNutritionAmount,
   getNutritionFlag,
   getNutritionNeeds,
+  getNutritionState,
   setNutritionState
 } from "../nutrition/actor.mjs";
 import { consumeNutrition } from "../nutrition/consumption.mjs";
@@ -26,10 +27,10 @@ export function onRenderCharacterActorSheet(app, html) {
   const actor = app.actor;
   if ( html.querySelector(".simple-nutrition") ) return;
 
-  const anchor = html.querySelector(".stats .meter-group:last-of-type");
+  const anchor = [...html.querySelectorAll(".stats .meter-group")].at(-1);
   if ( !anchor ) return;
 
-  const configurable = app.isEditable && !!(app.isEditMode ?? app.isEditable);
+  const configurable = app.isEditable && app.isEditMode;
   anchor.insertAdjacentHTML("afterend", renderTracker(actor, app.isEditable, configurable));
 
   for ( const button of html.querySelectorAll(".simple-nutrition [data-nutrition]") ) {
@@ -38,6 +39,31 @@ export function onRenderCharacterActorSheet(app, html) {
 
   for ( const button of html.querySelectorAll(".simple-nutrition [data-action='configureNutrition']") ) {
     button.addEventListener("click", event => onConfigureNutrition(app, event));
+  }
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Inject the nutrition tracker into each owned character entry of the group sheet.
+ *
+ * @param {GroupActorSheet} app The rendered group sheet application.
+ * @param {HTMLElement} html The rendered sheet HTML.
+ * @returns {void}
+ */
+export function onRenderGroupActorSheet(app, html) {
+  for ( const actor of app.actor.system.playerCharacters ) {
+    if ( !actor.isOwner ) continue;
+
+    const info = html.querySelector(`.member[data-uuid="${actor.uuid}"] .stats .info:first-child`);
+    if ( !info ) continue;
+
+    for ( const entry of info.querySelectorAll(".simple-nutrition-group") ) entry.remove();
+    info.insertAdjacentHTML("beforeend", renderGroupTracker(actor));
+
+    for ( const button of info.querySelectorAll(".simple-nutrition-group [data-nutrition]") ) {
+      button.addEventListener("click", event => onToggleNutrition(actor, event));
+    }
   }
 }
 
@@ -84,7 +110,7 @@ export function registerTidyNutritionContent(api) {
  * Build the shared tracker context used by both the vanilla and Tidy 5e tracker markup.
  *
  * @param {Actor5e} actor The actor being rendered.
- * @returns {{ state: NutritionState, needs: object, trackFood: boolean, trackWater: boolean, configTooltip: string, foodTooltip: string, waterTooltip: string }}
+ * @returns {NutritionTrackerContext} The shared tracker context.
  */
 function buildTrackerContext(actor) {
   const { config, ...state } = getNutritionFlag(actor);
@@ -206,16 +232,16 @@ async function onToggleNutrition(actor, event) {
       position: {
         width: 420
       }
-    }, { rejectClose: false });
+    });
 
     if ( action === null ) return;
     if ( action === false ) {
+      const conditionRemoved = getNutritionState(actor)[marker];
       await setNutritionState(actor, {
-        ...state,
         [nutrition]: 0,
         [marker]: false
       });
-      if ( state[marker] ) await actor.toggleStatusEffect(condition, { active: true });
+      if ( conditionRemoved ) await actor.toggleStatusEffect(condition, { active: true });
       return;
     }
   }
@@ -296,18 +322,8 @@ function renderTidyTracker(actor, editable, configurable) {
  */
 function renderTracker(actor, editable, configurable) {
   const { state, needs, trackFood, trackWater, configTooltip, foodTooltip, waterTooltip } = buildTrackerContext(actor);
-  const foodProgress = trackFood
-    ? _loc("SIMPLE_NUTRITION.Tracker.Progress", {
-      current: formatNutritionAmount("food", state.food * needs.food, { withUnit: false }),
-      required: formatNutritionAmount("food", needs.food, { withUnit: false })
-    })
-    : _loc("SIMPLE_NUTRITION.Tracker.NotRequired");
-  const waterProgress = trackWater
-    ? _loc("SIMPLE_NUTRITION.Tracker.Progress", {
-      current: formatNutritionAmount("water", state.water * needs.water, { withUnit: false }),
-      required: formatNutritionAmount("water", needs.water, { withUnit: false })
-    })
-    : _loc("SIMPLE_NUTRITION.Tracker.NotRequired");
+  const foodProgress = formatNutritionProgress("food", trackFood, state, needs);
+  const waterProgress = formatNutritionProgress("water", trackWater, state, needs);
 
   return `
     <div class="meter-group simple-nutrition">
@@ -333,5 +349,65 @@ function renderTracker(actor, editable, configurable) {
           _loc("SIMPLE_NUTRITION.Tracker.Water"), waterProgress)}
       </div>
     </div>
+  `;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Format the compact progress text of one nutrition type.
+ *
+ * @param {NutritionType} type The nutrition type.
+ * @param {boolean} track Whether this nutrition type is tracked.
+ * @param {NutritionState} state The stored nutrition state.
+ * @param {{ food: number, water: number }} needs The daily food and water requirements.
+ * @returns {string} The localized progress text.
+ */
+function formatNutritionProgress(type, track, state, needs) {
+  if ( !track ) return _loc("SIMPLE_NUTRITION.Tracker.NotRequired");
+  return _loc("SIMPLE_NUTRITION.Tracker.Progress", {
+    current: formatNutritionAmount(type, state[type] * needs[type], { withUnit: false }),
+    required: formatNutritionAmount(type, needs[type], { withUnit: false })
+  });
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Render one nutrition entry of the group sheet tracker.
+ *
+ * @param {NutritionType} type The nutrition type the entry controls.
+ * @param {boolean} track Whether this nutrition type is tracked.
+ * @param {string} tooltip The escaped tooltip text.
+ * @param {string} progress The localized progress text.
+ * @returns {string} The rendered entry markup.
+ */
+function renderGroupNutritionEntry(type, track, tooltip, progress) {
+  const icon = type === "food" ? "fa-drumstick-bite" : "fa-glass-water";
+  const iconMarkup = `<i class="fa-solid ${icon}" inert></i>`;
+  return `
+    <div class="simple-nutrition-group${track ? "" : " is-disabled"}" data-tooltip="${tooltip}">
+      ${track ? `<a data-nutrition="${type}" aria-label="${tooltip}">${iconMarkup}</a>` : iconMarkup}
+      <span class="value">${track ? progress : "&mdash;"}</span>
+    </div>
+  `;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Render the nutrition entries appended to the first info block of a group sheet member.
+ *
+ * @param {Actor5e} actor The member being rendered.
+ * @returns {string} The rendered entries markup.
+ */
+function renderGroupTracker(actor) {
+  const { state, needs, trackFood, trackWater, foodTooltip, waterTooltip } = buildTrackerContext(actor);
+  const foodProgress = formatNutritionProgress("food", trackFood, state, needs);
+  const waterProgress = formatNutritionProgress("water", trackWater, state, needs);
+
+  return `
+    ${renderGroupNutritionEntry("food", trackFood, foodTooltip, foodProgress)}
+    ${renderGroupNutritionEntry("water", trackWater, waterTooltip, waterProgress)}
   `;
 }

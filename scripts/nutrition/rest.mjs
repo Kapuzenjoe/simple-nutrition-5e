@@ -1,5 +1,5 @@
 /**
- * @import { NutritionConfig, NutritionRestState, NutritionState } from "../_types.mjs";
+ * @import { NutritionComputation, NutritionRestState } from "../_types.mjs";
  * @import { RestConfiguration, RestResult } from "dnd5e/module/documents/_types.mjs";
  */
 
@@ -16,11 +16,12 @@ import {
 } from "../config.mjs";
 
 import {
+  getNutritionConfig,
   getNutritionFlag,
   getNutritionSaveDC,
   setNutritionState
 } from "./actor.mjs";
-import { isManualRecoveryActive } from "../utils.mjs";
+import { isCalendarModeActive } from "../utils.mjs";
 
 /**
  * Persist the nutrition state computed for a new day and toggle conditions accordingly.
@@ -31,6 +32,7 @@ import { isManualRecoveryActive } from "../utils.mjs";
  */
 export async function applyNutrition(actor, state) {
   const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+  const { trackFood, trackWater } = getNutritionConfig(actor);
   await setNutritionState(actor, {
     food: 0,
     water: 0,
@@ -40,8 +42,8 @@ export async function applyNutrition(actor, state) {
     exhaustionRecoveryBlocked: legacy && isExhaustionRecoveryBlocked(actor, state)
   });
 
-  await actor.toggleStatusEffect(CONDITION_DEHYDRATION, { active: state.dehydrated });
-  await actor.toggleStatusEffect(CONDITION_MALNUTRITION, { active: state.malnourished });
+  if ( trackWater !== false ) await actor.toggleStatusEffect(CONDITION_DEHYDRATION, { active: state.dehydrated });
+  if ( trackFood !== false ) await actor.toggleStatusEffect(CONDITION_MALNUTRITION, { active: state.malnourished });
 }
 
 /* -------------------------------------------- */
@@ -66,7 +68,7 @@ function isExhaustionRecoveryBlocked(actor, state) {
  * Compute the nutrition state transition for a new day, without applying any changes.
  *
  * @param {Actor5e} actor The actor to evaluate.
- * @returns {{ nutritionConfig: NutritionConfig, trackFood: boolean, trackWater: boolean, previous: NutritionState, state: NutritionRestState }}
+ * @returns {NutritionComputation} The computed nutrition state and the stored values it was derived from.
  */
 export function computeNutrition(actor) {
   const { config: nutritionConfig, ...previous } = getNutritionFlag(actor);
@@ -132,7 +134,7 @@ export function onPreRestCompleted(actor, result, config) {
   if ( (actor.type !== "character") || !config.newDay ) return;
 
   const legacy = game.dnd5e.settings.rulesVersion === "legacy";
-  const calendarMode = !isManualRecoveryActive();
+  const calendarMode = isCalendarModeActive();
 
   // Under calendar-driven recovery, modern conditions already block system recovery; legacy has no
   // condition to key off, so the day-change block (`exhaustionRecoveryBlocked`) is reapplied here.
@@ -152,7 +154,9 @@ export function onPreRestCompleted(actor, result, config) {
 
   if ( recoveryBlocked || state.penalty ) {
     const clone = result.clone.system.attributes.exhaustion ?? 0;
-    const exhaustion = recoveryBlocked ? clone : (foundry.utils.getProperty(result.updateData, EXHAUSTION_PATH) ?? clone);
+    const exhaustion = recoveryBlocked
+      ? clone
+      : (foundry.utils.getProperty(result.updateData, EXHAUSTION_PATH) ?? clone);
     const max = CONFIG.DND5E.conditionTypes.exhaustion.levels;
 
     foundry.utils.mergeObject(result.updateData, {
@@ -174,7 +178,7 @@ export function onPreRestCompleted(actor, result, config) {
  * @returns {Promise<void>} A promise that resolves when nutrition updates finish.
  */
 export async function onRestCompleted(actor, result, config) {
-  if ( (actor.type !== "character") || !config.newDay || !isManualRecoveryActive() ) return;
+  if ( (actor.type !== "character") || !config.newDay || isCalendarModeActive() ) return;
 
   const state = result[MODULE_ID];
   if ( !state ) return;

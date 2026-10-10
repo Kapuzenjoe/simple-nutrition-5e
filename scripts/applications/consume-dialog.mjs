@@ -134,7 +134,12 @@ export default class NutritionConsumeDialog extends Dialog5e {
    * Display the nutrition consumption dialog.
    *
    * @param {Actor5e} actor The actor consuming nutrition.
-   * @param {{ type: NutritionType, items: NutritionCandidate[], required: string, requiredValue?: number, starvation?: number }} options The dialog configuration.
+   * @param {object} options The dialog configuration.
+   * @param {NutritionType} options.type The nutrition type being consumed.
+   * @param {NutritionCandidate[]} options.items The items the actor can consume.
+   * @param {string} options.required The formatted daily requirement.
+   * @param {number} [options.requiredValue] The daily requirement in pounds (food) or gallons (water).
+   * @param {number} [options.starvation] The consecutive number of days without food.
    * @returns {Promise<NutritionConsumption|null>} The submitted result, or null if the dialog is dismissed.
    */
   static async consume(actor, options={}) {

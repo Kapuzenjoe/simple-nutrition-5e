@@ -9,7 +9,8 @@
  * @property {number} starvation The consecutive number of days without food.
  * @property {boolean} foodConditionRemoved Whether malnutrition was removed after meeting today's food requirement.
  * @property {boolean} waterConditionRemoved Whether dehydration was removed after meeting today's water requirement.
- * @property {boolean} exhaustionRecoveryBlocked Whether the long rest exhaustion reduction is suppressed because the previous day's requirements were unmet (legacy rules only).
+ * @property {boolean} exhaustionRecoveryBlocked Whether the long rest exhaustion reduction is suppressed because the
+ *                                               previous day's requirements were unmet (legacy rules only).
  */
 
 /**
@@ -18,8 +19,10 @@
  * @property {boolean} trackWater Whether water tracking is enabled.
  * @property {number|null} foodPerDay The actor-specific daily food requirement in pounds.
  * @property {number|null} waterPerDay The actor-specific daily water requirement in gallons.
- * @property {string|null} starvationLimit The actor-specific formula for the starvation threshold in days (flat day count under modern rules, CON-mod formula under legacy rules).
- * @property {string|null} malnutritionDC The actor-specific formula for the Constitution saving throw DC (food under modern rules, water under legacy rules).
+ * @property {string|null} starvationLimit The actor-specific formula for the starvation threshold in days (flat day
+ *                                         count under modern rules, CON-mod formula under legacy rules).
+ * @property {string|null} malnutritionDC The actor-specific formula for the Constitution saving throw DC (food under
+ *                                        modern rules, water under legacy rules).
  */
 
 /**
@@ -32,7 +35,17 @@
  * @property {number} penalty The automatic exhaustion levels to apply for this day.
  * @property {boolean} foodFull Whether today's food requirement was fully met.
  * @property {boolean} waterFull Whether today's water requirement was fully met.
- * @property {number} exhaustionBefore The actor's Exhaustion level before today's own changes (used for legacy water-penalty doubling).
+ * @property {number} exhaustionBefore The actor's Exhaustion level before today's own changes (used for legacy
+ *                                     water-penalty doubling).
+ */
+
+/**
+ * @typedef {object} NutritionComputation
+ * @property {NutritionConfig} nutritionConfig The actor's nutrition config.
+ * @property {boolean} trackFood Whether food tracking is enabled.
+ * @property {boolean} trackWater Whether water tracking is enabled.
+ * @property {NutritionState} previous The stored nutrition state before the day change.
+ * @property {NutritionRestState} state The computed nutrition state for the new day.
  */
 
 /**
@@ -58,4 +71,15 @@
  * @property {NutritionConsumptionEntry[]} entries The selected item consumption entries.
  * @property {boolean} [freshWater] Whether the actor drinks from a fresh water source.
  * @property {boolean} [freeFood] Whether the actor eats from a free food source.
+ */
+
+/**
+ * @typedef {object} NutritionTrackerContext
+ * @property {NutritionState} state The stored nutrition state.
+ * @property {{ food: number, water: number }} needs The daily food and water requirements.
+ * @property {boolean} trackFood Whether food tracking is enabled.
+ * @property {boolean} trackWater Whether water tracking is enabled.
+ * @property {string} configTooltip The escaped tooltip of the configure button.
+ * @property {string} foodTooltip The escaped tooltip of the food button.
+ * @property {string} waterTooltip The escaped tooltip of the water button.
  */

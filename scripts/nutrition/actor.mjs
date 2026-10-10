@@ -80,7 +80,7 @@ export function getNutritionAmount(actor, type, item) {
  * @param {Item5e} item The item being consumed.
  * @returns {string|null} A localized amount hint for one item.
  */
-export function getNutritionAmountLabel(actor, type, item) {
+function getNutritionAmountLabel(actor, type, item) {
   if ( (type === "food") && (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) ) {
     return _loc("SIMPLE_NUTRITION.Dialog.AmountFullDay");
   }
@@ -182,7 +182,8 @@ export function getNutritionSaveDC(actor, nutritionConfig) {
  * @returns {NutritionState} The stored nutrition state.
  */
 export function getNutritionState(actor) {
-  const { config, ...state } = getNutritionFlag(actor);
+  const state = getNutritionFlag(actor);
+  delete state.config;
   return state;
 }
 

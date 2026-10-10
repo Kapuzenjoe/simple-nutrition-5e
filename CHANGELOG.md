@@ -1,8 +1,14 @@
 # Changelog
 
-## Version 1.0.1
+## Version 1.1.0
 
 - Added support for Calendaria calendar-driven nutrition tracking
+- Added a "Calendar Mode" setting (Default, Always On, Always Off) to choose whether nutrition is evaluated once per calendar midnight or on a long rest.
+- Added a food and water tracker to the Group sheet's member list for characters you own.
+- Fixed consuming or clearing food and water overwriting the new day's values when the day changed or a rest finished while the dialog was open.
+- Fixed a daily food or water requirement of 0 breaking nutrition tracking; a value of 0 or below now resets the field to its default.
+- Fixed one character's failed day change skipping all remaining characters, and fast consecutive time changes working on outdated nutrition values.
+- Fixed manually set Dehydration or Malnutrition conditions being removed every new day while the matching tracking is turned off.
 
 ## Version 1.0.0
 
