@@ -2,9 +2,11 @@
 
 ## Version 1.1.0
 
-- Added support for Calendaria calendar-driven nutrition tracking
+- Added support for Calendaria and Ember calendars.
 - Added a "Calendar Mode" setting (Default, Always On, Always Off) to choose whether nutrition is evaluated once per calendar midnight or on a long rest.
 - Added a food and water tracker to the Group sheet's member list for characters you own.
+- Added a Group sheet button for the GM to record a free food and water source for every character.
+- Added a "Disable Group Sheet Integration" setting to hide the nutrition tracker and the group button on the Group sheet.
 - Fixed consuming or clearing food and water overwriting the new day's values when the day changed or a rest finished while the dialog was open.
 - Fixed a daily food or water requirement of 0 breaking nutrition tracking; a value of 0 or below now resets the field to its default.
 - Fixed one character's failed day change skipping all remaining characters, and fast consecutive time changes working on outdated nutrition values.

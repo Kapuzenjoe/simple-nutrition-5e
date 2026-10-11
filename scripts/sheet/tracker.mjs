@@ -5,7 +5,9 @@
 import NutritionConfig from "../applications/nutrition-config.mjs";
 import {
   CONDITION_DEHYDRATION,
-  CONDITION_MALNUTRITION
+  CONDITION_MALNUTRITION,
+  MODULE_ID,
+  SETTING_KEYS
 } from "../config.mjs";
 import {
   formatNutritionAmount,
@@ -14,7 +16,7 @@ import {
   getNutritionState,
   setNutritionState
 } from "../nutrition/actor.mjs";
-import { consumeNutrition } from "../nutrition/consumption.mjs";
+import { consumeGroupNutrition, consumeNutrition } from "../nutrition/consumption.mjs";
 
 /**
  * Inject the nutrition tracker into the character sheet.
@@ -45,13 +47,23 @@ export function onRenderCharacterActorSheet(app, html) {
 /* -------------------------------------------- */
 
 /**
- * Inject the nutrition tracker into each owned character entry of the group sheet.
+ * Inject the nutrition tracker into each owned character entry and the group action into the group sheet.
  *
  * @param {GroupActorSheet} app The rendered group sheet application.
  * @param {HTMLElement} html The rendered sheet HTML.
  * @returns {void}
  */
 export function onRenderGroupActorSheet(app, html) {
+  if ( game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_GROUP_SHEET) ) return;
+
+  const buttons = html.querySelector(".sheet-header-buttons");
+  if ( buttons && game.user.isGM ) {
+    buttons.querySelector(".simple-nutrition-group-action")?.remove();
+    buttons.insertAdjacentHTML("beforeend", renderGroupAction());
+    buttons.querySelector(".simple-nutrition-group-action")
+      .addEventListener("click", () => onConsumeGroupNutrition(app.actor));
+  }
+
   for ( const actor of app.actor.system.playerCharacters ) {
     if ( !actor.isOwner ) continue;
 
@@ -247,6 +259,61 @@ async function onToggleNutrition(actor, event) {
   }
 
   await consumeNutrition(actor, nutrition);
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Prompt for free food and water sources and record them for every character of the group.
+ *
+ * @param {Actor5e} group The group actor.
+ * @returns {Promise<void>} A promise that resolves when the workflow completes.
+ */
+async function onConsumeGroupNutrition(group) {
+  const { createCheckboxInput, createFormGroup } = foundry.applications.fields;
+  const content = [
+    createFormGroup({
+      label: _loc("SIMPLE_NUTRITION.Dialog.FreeFood"),
+      hint: _loc("SIMPLE_NUTRITION.Dialog.FreeFoodHint"),
+      input: createCheckboxInput({ name: "food" })
+    }),
+    createFormGroup({
+      label: _loc("SIMPLE_NUTRITION.Dialog.FreshWater"),
+      hint: _loc("SIMPLE_NUTRITION.Dialog.FreshWaterHint"),
+      input: createCheckboxInput({ name: "water" })
+    })
+  ].map(field => field.outerHTML).join("");
+
+  const data = await foundry.applications.api.DialogV2.input({
+    content,
+    window: {
+      icon: "fa-solid fa-bowl-food",
+      title: "SIMPLE_NUTRITION.Group.Title"
+    },
+    position: { width: 520 }
+  });
+  if ( !data ) return;
+
+  const actors = group.system.playerCharacters;
+  if ( data.food ) await consumeGroupNutrition(actors, "food");
+  if ( data.water ) await consumeGroupNutrition(actors, "water");
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Render the group action button for the group sheet header.
+ *
+ * @returns {string} The rendered button markup.
+ */
+function renderGroupAction() {
+  const label = foundry.utils.escapeHTML(_loc("SIMPLE_NUTRITION.Group.Title"));
+  return `
+    <button type="button" class="gold-button always-interactive simple-nutrition-group-action" data-tooltip
+            aria-label="${label}">
+      <i class="fa-solid fa-bowl-food" inert></i>
+    </button>
+  `;
 }
 
 /* -------------------------------------------- */

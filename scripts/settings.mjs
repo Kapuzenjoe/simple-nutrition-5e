@@ -1,6 +1,6 @@
 import { CALENDAR_MODES, MODULE_ID, SETTING_KEYS } from "./config.mjs";
 
-const { StringField } = foundry.data.fields;
+const { BooleanField, StringField } = foundry.data.fields;
 
 /**
  * Settings definitions for Simple Nutrition 5e.
@@ -18,6 +18,14 @@ const SETTINGS = [
       required: true,
       choices: Object.fromEntries(Object.entries(CALENDAR_MODES).map(([key, mode]) => [key, mode.label]))
     })
+  },
+  {
+    config: true,
+    name: "SIMPLE_NUTRITION.Settings.DisableGroupSheet.Name",
+    hint: "SIMPLE_NUTRITION.Settings.DisableGroupSheet.Hint",
+    key: SETTING_KEYS.DISABLE_GROUP_SHEET,
+    scope: "world",
+    type: new BooleanField({ initial: false })
   }
 ];
 

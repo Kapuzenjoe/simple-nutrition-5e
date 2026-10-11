@@ -16,6 +16,7 @@ import {
   formatNutritionAmount,
   getNutritionAmount,
   getNutritionCandidate,
+  getNutritionConfig,
   getNutritionNeeds,
   getNutritionState,
   setNutritionState
@@ -33,9 +34,6 @@ export async function consumeNutrition(actor, nutrition) {
   const items = (nutrition === "food" ? getFoodCandidates(actor) : getWaterCandidates(actor))
     .map(item => getNutritionCandidate(actor, nutrition, item));
   const needs = getNutritionNeeds(actor);
-  const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
-  const conditionEffect = isFood ? CONDITION_EFFECT_MALNOURISHED : CONDITION_EFFECT_DEHYDRATED;
-  const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
 
   /**
    * @type {NutritionConsumption|null}
@@ -59,6 +57,44 @@ export async function consumeNutrition(actor, nutrition) {
     }, 0) / needs[nutrition];
   if ( entries.length && !consumption.freshWater && !consumption.freeFood ) await consumeSelectedItems(actor, entries);
 
+  await applyConsumption(actor, nutrition, consumed);
+
+  return true;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Record a full day of free food or water for every given actor that still needs it.
+ *
+ * @param {Actor5e[]} actors The actors consuming nutrition.
+ * @param {NutritionType} nutrition The nutrition type being consumed.
+ * @returns {Promise<void>} A promise that resolves when all actors have been updated.
+ */
+export async function consumeGroupNutrition(actors, nutrition) {
+  const track = nutrition === "food" ? "trackFood" : "trackWater";
+  const pending = actors.filter(actor => {
+    return (getNutritionConfig(actor)[track] !== false) && (getNutritionState(actor)[nutrition] < 1);
+  });
+  await Promise.all(pending.map(actor => applyConsumption(actor, nutrition, 1)));
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Add consumed nutrition to the actor's current day and lift the matching condition once the requirement is met.
+ *
+ * @param {Actor5e} actor The actor consuming nutrition.
+ * @param {NutritionType} nutrition The nutrition type being consumed.
+ * @param {number} consumed The fraction of the daily requirement consumed.
+ * @returns {Promise<void>} A promise that resolves when the actor has been updated.
+ */
+async function applyConsumption(actor, nutrition, consumed) {
+  const isFood = nutrition === "food";
+  const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
+  const conditionEffect = isFood ? CONDITION_EFFECT_MALNOURISHED : CONDITION_EFFECT_DEHYDRATED;
+  const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
+
   const state = getNutritionState(actor);
   const amount = state[nutrition] + consumed;
   const conditionRemoved = (amount >= 1) && actor.hasConditionEffect(conditionEffect);
@@ -69,8 +105,6 @@ export async function consumeNutrition(actor, nutrition) {
   });
 
   if ( conditionRemoved ) await actor.toggleStatusEffect(condition, { active: false });
-
-  return true;
 }
 
 /* -------------------------------------------- */

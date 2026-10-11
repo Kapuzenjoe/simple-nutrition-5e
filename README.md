@@ -176,12 +176,14 @@ Nutrition is checked once per day. When that happens depends on the Calendar Mod
 
 ## Settings
 
-One world setting is available in the module settings.
+Two world settings are available in the module settings.
 
 - **Calendar Mode.** Chooses whether nutrition is checked once per calendar midnight or on a long rest that
   starts a new day. Default (Auto-Detect) treats Calendaria, Ember, or dnd5e's Daily Recovery Mode set to
   Calendar Recovery, which needs dnd5e 6.0 or later, as a calendar source. It switches to calendar mode as
   soon as one is present. Set it to Always On or Always Off to decide by hand.
+- **Disable Group Sheet Integration.** Hides the nutrition tracker on the member entries of the Group sheet and
+  the free food and water button in its header. It is off by default.
 
 ---
 

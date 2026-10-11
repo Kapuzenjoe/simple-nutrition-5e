@@ -16,9 +16,9 @@
       "LegendFood": "Food",
       "LegendWater": "Water",
       "StarvationLabel": "Days without food",
-      "FreshWater": "Fresh Water Source Available",
+      "FreshWater": "Fresh Water Source",
       "FreshWaterHint": "Drink from a fresh water source instead of consuming stored water.",
-      "FreeFood": "Free Food Source Available",
+      "FreeFood": "Free Food Source",
       "FreeFoodHint": "Eat from a free food source instead of consuming stored rations.",
       "RequiredLabel": "Required",
       "SelectedLabel": "Selected",
@@ -47,6 +47,9 @@
       "WaterTooltip": "Water consumed today: {current} of {required}",
       "FoodNotRequiredTooltip": "Food is not required for this actor.",
       "WaterNotRequiredTooltip": "Water is not required for this actor."
+    },
+    "Group": {
+      "Title": "Free Food and Water for the Group"
     },
     "Config": {
       "Title": "Nutrition",
@@ -85,6 +88,10 @@
         "Default": "Default (Auto-Detect)",
         "On": "Always On",
         "Off": "Always Off"
+      },
+      "DisableGroupSheet": {
+        "Name": "Disable Group Sheet Integration",
+        "Hint": "Hide the nutrition tracker on the member entries and the free food and water button on the Group sheet."
       }
     },
     "Calendar": {
