@@ -2,6 +2,7 @@ import {
   BASE_NEEDS,
   LITERS_PER_GALLON,
   MODULE_ID,
+  NUTRITION_FLAG,
   SAVE_DC_LEGACY,
   SAVE_DC_MODERN,
   STARVATION_FORMULA_LEGACY,
@@ -10,8 +11,7 @@ import {
 import {
   formatNutritionAmount,
   getGallonAbbreviation,
-  getNutritionConfig,
-  setNutritionConfig
+  getNutritionConfig
 } from "../nutrition/actor.mjs";
 
 const BaseConfigSheet = globalThis.dnd5e.applications.actor.BaseConfigSheetV2;
@@ -77,7 +77,9 @@ export default class NutritionConfig extends BaseConfigSheet {
     context.data = {
       trackFood: config.trackFood !== false,
       trackWater: config.trackWater !== false,
-      foodPerDay: (config.foodPerDay === null) ? null : convertWeight(config.foodPerDay, "lb", weightUnit),
+      foodPerDay: (config.foodPerDay === null)
+        ? null
+        : convertWeight(config.foodPerDay, "lb", weightUnit).toNearest(0.001),
       waterPerDay: (config.waterPerDay === null)
         ? null
         : (metricVolume ? (config.waterPerDay * LITERS_PER_GALLON).toNearest(0.001) : config.waterPerDay),
@@ -149,21 +151,14 @@ export default class NutritionConfig extends BaseConfigSheet {
 
   /* -------------------------------------------- */
 
-  /** @override */
-  _prepareSubmitData(event, form, formData) {
-    return foundry.utils.expandObject(formData.object);
-  }
-
-  /* -------------------------------------------- */
-
   /** @inheritDoc */
-  async _processSubmitData(event, form, submitData) {
-    const config = submitData.config ?? {};
+  _processFormData(event, form, formData) {
+    const { config={}, ...submitData } = super._processFormData(event, form, formData);
     const weightUnit = defaultUnits("weight");
     const metricVolume = game.settings.get("dnd5e", "metricVolumeUnits");
     const foodPerDay = this.#normalizeNumber(config.foodPerDay);
     const waterPerDay = this.#normalizeNumber(config.waterPerDay);
-    await setNutritionConfig(this.document, {
+    foundry.utils.setProperty(submitData, `flags.${MODULE_ID}.${NUTRITION_FLAG}.config`, {
       trackFood: config.trackFood !== false,
       trackWater: config.trackWater !== false,
       foodPerDay: (foodPerDay === null) ? null : convertWeight(foodPerDay, weightUnit, "lb"),
@@ -173,6 +168,7 @@ export default class NutritionConfig extends BaseConfigSheet {
       starvationLimit: config.starvationLimit?.trim() || null,
       malnutritionDC: config.malnutritionDC?.trim() || null
     });
+    return submitData;
   }
 
   /* -------------------------------------------- */

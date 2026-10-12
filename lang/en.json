@@ -81,6 +81,14 @@
       "WaterSaveHint": "On a failed save, use the button below to apply 1 level of &Reference[exhaustion apply=false] (2 levels if already exhausted).",
       "ApplyExhaustion": "Apply Exhaustion"
     },
+    "Usage": {
+      "Legend": "Nutrition",
+      "Label": "Counts As",
+      "Food": "Food",
+      "Water": "Water",
+      "Both": "Food and Water",
+      "None": "None"
+    },
     "Settings": {
       "CalendarMode": {
         "Name": "Calendar Mode",
@@ -92,6 +100,10 @@
       "DisableGroupSheet": {
         "Name": "Disable Group Sheet Integration",
         "Hint": "Hide the nutrition tracker on the member entries and the free food and water button on the Group sheet."
+      },
+      "DisableActivityNutrition": {
+        "Name": "Disable Activity Dialog Integration",
+        "Hint": "Do not add the nutrition option to the usage dialog of food items."
       }
     },
     "Calendar": {

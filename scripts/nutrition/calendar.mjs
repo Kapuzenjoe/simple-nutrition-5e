@@ -21,7 +21,8 @@ export function onUpdateWorldTime(worldTime, deltaTime) {
   const secondsPerDay = hoursPerDay * minutesPerHour * secondsPerMinute;
   const midnights = Math.floor(worldTime / secondsPerDay) - Math.floor((worldTime - deltaTime) / secondsPerDay);
   if ( midnights <= 0 ) return;
-  dayChangeQueue = dayChangeQueue.then(applyDayChanges);
+  dayChangeQueue = dayChangeQueue.then(applyDayChanges)
+    .catch(err => Hooks.onError("onUpdateWorldTime", err, { log: "error" }));
 }
 
 /* -------------------------------------------- */

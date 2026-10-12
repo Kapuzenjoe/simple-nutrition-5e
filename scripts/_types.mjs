@@ -3,6 +3,17 @@
  */
 
 /**
+ * @typedef {"food"|"water"|"both"|"none"} ActivityNutritionChoice
+ */
+
+/**
+ * @typedef {object} ActivityNutritionRecord
+ * @property {number} food      Fraction of the daily food requirement recorded by the usage.
+ * @property {number} water     Fraction of the daily water requirement recorded by the usage.
+ * @property {boolean} applied  Whether the recorded nutrition is currently applied to the actor.
+ */
+
+/**
  * @typedef {object} NutritionState
  * @property {number} food The fraction of today's food requirement consumed (0 = none, 1 = requirement met).
  * @property {number} water The fraction of today's water requirement consumed (0 = none, 1 = requirement met).

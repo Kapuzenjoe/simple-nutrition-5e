@@ -7,10 +7,13 @@
 - Added a food and water tracker to the Group sheet's member list for characters you own.
 - Added a Group sheet button for the GM to record a free food and water source for every character.
 - Added a "Disable Group Sheet Integration" setting to hide the nutrition tracker and the group button on the Group sheet.
+- Added "Nutrition" options to the usage dialog of food items to record their use as food, water, both or nothing; rations, magical berries and water are preselected.
+- Added a "Disable Activity Dialog Integration" setting to hide that option.
 - Fixed consuming or clearing food and water overwriting the new day's values when the day changed or a rest finished while the dialog was open.
 - Fixed a daily food or water requirement of 0 breaking nutrition tracking; a value of 0 or below now resets the field to its default.
 - Fixed one character's failed day change skipping all remaining characters, and fast consecutive time changes working on outdated nutrition values.
 - Fixed manually set Dehydration or Malnutrition conditions being removed every new day while the matching tracking is turned off.
+- Fixed the food and water tracker buttons on the character sheet being hard to read in the light theme.
 
 ## Version 1.0.0
 

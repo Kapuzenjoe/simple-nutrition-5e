@@ -82,21 +82,22 @@ export async function consumeGroupNutrition(actors, nutrition) {
 /* -------------------------------------------- */
 
 /**
- * Add consumed nutrition to the actor's current day and lift the matching condition once the requirement is met.
+ * Add consumed nutrition to the actor's current day, capped at the daily requirement, and lift the matching
+ * condition once the requirement is met.
  *
  * @param {Actor5e} actor The actor consuming nutrition.
  * @param {NutritionType} nutrition The nutrition type being consumed.
  * @param {number} consumed The fraction of the daily requirement consumed.
  * @returns {Promise<void>} A promise that resolves when the actor has been updated.
  */
-async function applyConsumption(actor, nutrition, consumed) {
+export async function applyConsumption(actor, nutrition, consumed) {
   const isFood = nutrition === "food";
   const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
   const conditionEffect = isFood ? CONDITION_EFFECT_MALNOURISHED : CONDITION_EFFECT_DEHYDRATED;
   const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
 
   const state = getNutritionState(actor);
-  const amount = state[nutrition] + consumed;
+  const amount = Math.min(state[nutrition] + consumed, 1);
   const conditionRemoved = (amount >= 1) && actor.hasConditionEffect(conditionEffect);
 
   await setNutritionState(actor, {
@@ -105,6 +106,33 @@ async function applyConsumption(actor, nutrition, consumed) {
   });
 
   if ( conditionRemoved ) await actor.toggleStatusEffect(condition, { active: false });
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Remove recorded nutrition from the actor's current day and restore the matching condition if meeting the
+ * requirement had lifted it.
+ * @param {Actor5e} actor            Actor whose nutrition is reverted.
+ * @param {NutritionType} nutrition  Nutrition type being reverted.
+ * @param {number} amount            Fraction of the daily requirement to remove.
+ * @returns {Promise<void>}
+ */
+export async function revertConsumption(actor, nutrition, amount) {
+  const isFood = nutrition === "food";
+  const condition = isFood ? CONDITION_MALNUTRITION : CONDITION_DEHYDRATION;
+  const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
+
+  const state = getNutritionState(actor);
+  const value = Math.max(state[nutrition] - amount, 0);
+  const conditionRestored = state[marker] && (value < 1);
+
+  await setNutritionState(actor, {
+    [nutrition]: value,
+    [marker]: state[marker] && !conditionRestored
+  });
+
+  if ( conditionRestored ) await actor.toggleStatusEffect(condition, { active: true });
 }
 
 /* -------------------------------------------- */

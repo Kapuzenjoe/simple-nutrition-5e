@@ -26,6 +26,14 @@ const SETTINGS = [
     key: SETTING_KEYS.DISABLE_GROUP_SHEET,
     scope: "world",
     type: new BooleanField({ initial: false })
+  },
+  {
+    config: true,
+    name: "SIMPLE_NUTRITION.Settings.DisableActivityNutrition.Name",
+    hint: "SIMPLE_NUTRITION.Settings.DisableActivityNutrition.Hint",
+    key: SETTING_KEYS.DISABLE_ACTIVITY_NUTRITION,
+    scope: "world",
+    type: new BooleanField({ initial: false })
   }
 ];
 

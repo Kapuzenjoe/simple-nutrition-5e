@@ -190,23 +190,6 @@ export function getNutritionState(actor) {
 /* -------------------------------------------- */
 
 /**
- * Persist nutrition config while keeping current runtime state.
- *
- * @param {Actor5e} actor The actor to update.
- * @param {Partial<NutritionConfig>} config The config changes to apply.
- * @returns {Promise<Actor5e>} A promise that resolves to the updated actor.
- */
-export function setNutritionConfig(actor, config) {
-  const current = getNutritionFlag(actor);
-  return actor.setFlag(MODULE_ID, NUTRITION_FLAG, {
-    ...current,
-    config: { ...current.config, ...config }
-  });
-}
-
-/* -------------------------------------------- */
-
-/**
  * Persist nutrition state while keeping actor-specific config.
  *
  * @param {Actor5e} actor The actor to update.

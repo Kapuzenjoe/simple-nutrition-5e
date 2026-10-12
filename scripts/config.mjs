@@ -14,6 +14,7 @@ export const SAVE_DC_MODERN = 10;
 export const SAVE_DC_LEGACY = 15;
 
 export const MAGICAL_BERRIES_IDENTIFIER = "magical-berries";
+export const RATIONS_IDENTIFIER = "rations";
 export const WATER_ITEM_AMOUNT = 0.125;
 export const LITERS_PER_GALLON = 3.78541;
 export const WATER_IDENTIFIERS = new Set(["water-pint", "water-fresh-pint"]);
@@ -39,11 +40,19 @@ export const EMPTY_NUTRITION_CONFIG = {
 
 export const SETTING_KEYS = {
   CALENDAR_MODE: "calendarMode",
-  DISABLE_GROUP_SHEET: "disableGroupSheet"
+  DISABLE_GROUP_SHEET: "disableGroupSheet",
+  DISABLE_ACTIVITY_NUTRITION: "disableActivityNutrition"
 };
 
 export const CALENDAR_MODES = {
   default: { label: "SIMPLE_NUTRITION.Settings.CalendarMode.Default" },
   on: { label: "SIMPLE_NUTRITION.Settings.CalendarMode.On" },
   off: { label: "SIMPLE_NUTRITION.Settings.CalendarMode.Off" }
+};
+
+export const ACTIVITY_NUTRITION_CHOICES = {
+  food: { label: "SIMPLE_NUTRITION.Usage.Food" },
+  water: { label: "SIMPLE_NUTRITION.Usage.Water" },
+  both: { label: "SIMPLE_NUTRITION.Usage.Both" },
+  none: { label: "SIMPLE_NUTRITION.Usage.None" }
 };

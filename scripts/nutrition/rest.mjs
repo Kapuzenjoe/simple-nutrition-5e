@@ -75,10 +75,10 @@ export function computeNutrition(actor) {
   const trackFood = nutritionConfig.trackFood !== false;
   const trackWater = nutritionConfig.trackWater !== false;
   const legacy = game.dnd5e.settings.rulesVersion === "legacy";
-  const starvationLimit = game.dnd5e.utils.simplifyBonus(
+  const starvationLimit = Math.max(1, game.dnd5e.utils.simplifyBonus(
     nutritionConfig.starvationLimit ?? (legacy ? STARVATION_FORMULA_LEGACY : STARVATION_LIMIT),
     actor.getRollData()
-  );
+  ));
   const foodHalf = !trackFood || (previous.food >= 0.5);
   const foodFull = !trackFood || (previous.food >= 1);
   const waterHalf = !trackWater || (previous.water >= 0.5);

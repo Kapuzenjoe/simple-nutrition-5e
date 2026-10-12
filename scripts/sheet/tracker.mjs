@@ -165,7 +165,7 @@ function renderNutritionButton(type, editable, track, active, tooltip, label, pr
   return `
     <button
       type="button"
-      class="unbutton simple-nutrition__button ${track ? (active ? "is-active" : "is-inactive") : "is-disabled"}"
+      class="simple-nutrition__button ${track ? (active ? "is-active" : "is-inactive") : "is-disabled"}"
       data-nutrition="${type}"
       data-tooltip="${tooltip}"
       aria-label="${tooltip}"

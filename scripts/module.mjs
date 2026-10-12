@@ -1,4 +1,5 @@
 import { onRenderNutritionSaveMessage, onRenderNutritionSummaryMessage, onRenderRestChatMessage } from "./chat/messages.mjs";
+import { onPostUseActivity, onRenderActivityUsageDialog, onUpdateChatMessage } from "./nutrition/activity.mjs";
 import { onUpdateWorldTime } from "./nutrition/calendar.mjs";
 import { onPreRestCompleted, onRestCompleted } from "./nutrition/rest.mjs";
 import { registerSettings } from "./settings.mjs";
@@ -18,5 +19,8 @@ Hooks.once("init", () => {
   Hooks.on("dnd5e.renderChatMessage", onRenderRestChatMessage);
   Hooks.on("dnd5e.renderChatMessage", onRenderNutritionSaveMessage);
   Hooks.on("dnd5e.renderChatMessage", onRenderNutritionSummaryMessage);
+  Hooks.on("renderActivityUsageDialog", onRenderActivityUsageDialog);
+  Hooks.on("dnd5e.postUseActivity", onPostUseActivity);
+  Hooks.on("updateChatMessage", onUpdateChatMessage);
   Hooks.on("updateWorldTime", onUpdateWorldTime);
 });
