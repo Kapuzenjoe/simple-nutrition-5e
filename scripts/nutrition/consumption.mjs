@@ -97,7 +97,7 @@ export async function applyConsumption(actor, nutrition, consumed) {
   const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
 
   const state = getNutritionState(actor);
-  const amount = Math.min(state[nutrition] + consumed, 1);
+  const amount = Math.min(state[nutrition] + consumed, 1).toNearest(0.000001);
   const conditionRemoved = (amount >= 1) && actor.hasConditionEffect(conditionEffect);
 
   await setNutritionState(actor, {
@@ -124,7 +124,7 @@ export async function revertConsumption(actor, nutrition, amount) {
   const marker = isFood ? "foodConditionRemoved" : "waterConditionRemoved";
 
   const state = getNutritionState(actor);
-  const value = Math.max(state[nutrition] - amount, 0);
+  const value = Math.max(state[nutrition] - amount, 0).toNearest(0.000001);
   const conditionRestored = state[marker] && (value < 1);
 
   await setNutritionState(actor, {

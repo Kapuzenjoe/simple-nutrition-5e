@@ -20,6 +20,7 @@ version.
 - [Getting Started](#getting-started)
 - [Tracking](#tracking)
 - [Consuming](#consuming)
+- [Group Sheet](#group-sheet)
 - [Rest & Calendar](#rest--calendar)
 - [Conditions](#conditions)
 - [Settings](#settings)
@@ -95,6 +96,46 @@ Click Food or Water on the tracker to open the Consume Food or Drink Water dialo
     <td>
       <strong>Consume dialog</strong><br>
       <img src="docs/example_consume.png" alt="Consume dialog with required and selected amounts and a list of food items" width="320">
+    </td>
+  </tr>
+</table>
+
+### Item Usage
+
+Using a food item can record its nutrition without opening the Consume dialog.
+
+- **Counts As.** The usage dialog of a Food consumable gains a Nutrition group with a Counts As choice: Food,
+  Water, Food and Water, or None. Rations and magical berries are preselected as Food, water items as Water,
+  and everything else as None.
+- **Recording.** After the usage, the item adds to today's total just like in the Consume dialog, capped at
+  the day's requirement. The choice only appears when the usage consumes a resource.
+- **Tracking.** Only the types tracked for the character are offered. The group stays hidden when neither
+  type is tracked.
+- **Refund.** Refunding the usage from its chat card removes the recorded amount again, and consuming it
+  again adds it back.
+- **Turning it off.** The Disable Activity Dialog Integration setting removes the choice, see
+  [Settings](#settings).
+
+---
+
+## Group Sheet
+
+The Group sheet shows the tracker next to each member you own and gives the GM a shortcut for shared food
+and water.
+
+- **Member entries.** Each character you own shows a Food and a Water entry in its member row, with today's
+  progress. A type that is not tracked shows a dash. Click an entry to open the same dialog as the tracker
+  on the character sheet.
+- **Free food and water.** The GM gets a button in the group header. It opens a dialog with Free Food Source
+  Available and Fresh Water Source Available. Each selected option fills the day's requirement of every
+  group character that tracks it and does not have it met yet.
+- **Turning it off.** The Disable Group Sheet Integration setting hides both, see [Settings](#settings).
+
+<table>
+  <tr>
+    <td>
+      <strong>Group sheet</strong><br>
+      <img src="docs/example_group.png" alt="Group sheet with Food and Water progress next to each member" width="600">
     </td>
   </tr>
 </table>
@@ -176,7 +217,7 @@ Nutrition is checked once per day. When that happens depends on the Calendar Mod
 
 ## Settings
 
-Two world settings are available in the module settings.
+Three world settings are available in the module settings.
 
 - **Calendar Mode.** Chooses whether nutrition is checked once per calendar midnight or on a long rest that
   starts a new day. Default (Auto-Detect) treats Calendaria, Ember, or dnd5e's Daily Recovery Mode set to
@@ -184,6 +225,8 @@ Two world settings are available in the module settings.
   soon as one is present. Set it to Always On or Always Off to decide by hand.
 - **Disable Group Sheet Integration.** Hides the nutrition tracker on the member entries of the Group sheet and
   the free food and water button in its header. It is off by default.
+- **Disable Activity Dialog Integration.** Hides the Nutrition choice in the usage dialog of food items. It
+  is off by default.
 
 ---
 

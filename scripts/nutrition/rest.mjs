@@ -142,6 +142,8 @@ export function onPreRestCompleted(actor, result, config) {
     if ( !legacy ) return;
     const { exhaustionRecoveryBlocked } = getNutritionFlag(actor);
     if ( !exhaustionRecoveryBlocked ) return;
+    const { foodFull, waterFull } = computeNutrition(actor).state;
+    if ( foodFull && waterFull ) return;
     const clone = result.clone.system.attributes.exhaustion ?? 0;
     foundry.utils.mergeObject(result.updateData, {
       [EXHAUSTION_PATH]: Math.clamp(clone, 0, CONFIG.DND5E.conditionTypes.exhaustion.levels)

@@ -14,6 +14,7 @@
 - Fixed one character's failed day change skipping all remaining characters, and fast consecutive time changes working on outdated nutrition values.
 - Fixed manually set Dehydration or Malnutrition conditions being removed every new day while the matching tracking is turned off.
 - Fixed the food and water tracker buttons on the character sheet being hard to read in the light theme.
+- Fixed a long rest in calendar mode under the Legacy rules still blocking Exhaustion recovery after the full daily food and water were consumed.
 
 ## Version 1.0.0
 

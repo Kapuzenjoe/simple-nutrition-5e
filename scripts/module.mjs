@@ -15,8 +15,19 @@ Hooks.once("init", () => {
   Hooks.on("renderGroupActorSheet", onRenderGroupActorSheet);
   if ( game.modules.get("tidy5e-sheet")?.active ) Hooks.once("tidy5e-sheet.ready", registerTidyNutritionContent);
   Hooks.on("dnd5e.preRestCompleted", onPreRestCompleted);
-  Hooks.on("dnd5e.restCompleted", onRestCompleted);
-  Hooks.on("dnd5e.renderChatMessage", onRenderRestChatMessage);
+  Hooks.on("dnd5e.restCompleted", (actor, result, config) => {
+    onRestCompleted(actor, result, config).catch(err => {
+      Hooks.onError("onRestCompleted", err, {
+        msg: _loc("SIMPLE_NUTRITION.Rest.NutritionFailed", { actor: actor.name }),
+        log: "error",
+        notify: "error"
+      });
+    });
+  });
+  Hooks.on("dnd5e.renderChatMessage", (message, html) => {
+    onRenderRestChatMessage(message, html)
+      .catch(err => Hooks.onError("onRenderRestChatMessage", err, { log: "error" }));
+  });
   Hooks.on("dnd5e.renderChatMessage", onRenderNutritionSaveMessage);
   Hooks.on("dnd5e.renderChatMessage", onRenderNutritionSummaryMessage);
   Hooks.on("renderActivityUsageDialog", onRenderActivityUsageDialog);
