@@ -40,6 +40,7 @@
                 {{#if img}}<img src="{{ img }}" alt="" width="24" height="24">{{/if}}
                 <span>{{ name }}</span>
                 {{#if container}} <span class="hint">({{ container }})</span>{{/if}}
+                {{#if noActivity}}<i class="fa-solid fa-triangle-exclamation simple-nutrition-consume__warning" data-tooltip aria-label="{{ localize "SIMPLE_NUTRITION.Dialog.NoActivity" }}"></i>{{/if}}
             </label>
             <div class="form-fields">
                 <span class="hint">{{ owned }}{{#if amountLabel}} | {{ amountLabel }}{{/if}}</span>

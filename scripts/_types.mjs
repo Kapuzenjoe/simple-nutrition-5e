@@ -68,6 +68,7 @@
  * @property {string|null} container The parent container name, if any.
  * @property {string|null} amount A localized amount hint for one item.
  * @property {number} value The nutrition value provided by one item.
+ * @property {boolean} noActivity Whether the item has no usable consuming activity and is reduced by quantity.
  */
 
 /**

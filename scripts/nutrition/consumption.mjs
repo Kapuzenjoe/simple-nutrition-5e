@@ -8,12 +8,14 @@ import {
   CONDITION_EFFECT_DEHYDRATED,
   CONDITION_EFFECT_MALNOURISHED,
   CONDITION_MALNUTRITION,
+  MODULE_ID,
   WATER_IDENTIFIERS,
   WATERSKIN_IDENTIFIER
 } from "../config.mjs";
 
 import {
   formatNutritionAmount,
+  getConsumeActivity,
   getNutritionAmount,
   getNutritionCandidate,
   getNutritionConfig,
@@ -47,17 +49,20 @@ export async function consumeNutrition(actor, nutrition) {
   });
   if ( !consumption ) return false;
 
+  const free = consumption.freshWater || consumption.freeFood;
   const entries = consumption.entries.flatMap(entry => {
     const item = actor.items.get(entry.itemId);
     return item ? [{ item, quantity: entry.quantity }] : [];
   });
-  const consumed = consumption.freshWater || consumption.freeFood ? 1
-    : entries.reduce((total, entry) => {
+  const activityEntries = free ? [] : entries.filter(entry => getConsumeActivity(entry.item));
+  const quantityEntries = free ? [] : entries.filter(entry => !activityEntries.includes(entry));
+  const consumed = free ? 1
+    : quantityEntries.reduce((total, entry) => {
       return total + (getNutritionAmount(actor, nutrition, entry.item) * entry.quantity);
     }, 0) / needs[nutrition];
-  if ( entries.length && !consumption.freshWater && !consumption.freeFood ) await consumeSelectedItems(actor, entries);
-
-  await applyConsumption(actor, nutrition, consumed);
+  if ( quantityEntries.length ) await consumeSelectedItems(actor, quantityEntries);
+  if ( consumed > 0 ) await applyConsumption(actor, nutrition, consumed);
+  await useConsumeActivities(nutrition, activityEntries);
 
   return true;
 }
@@ -162,6 +167,22 @@ async function consumeSelectedItems(actor, entries) {
 /* -------------------------------------------- */
 
 /**
+ * Use the consuming activity of each selected item once. The usage consumes all selected units of the item.
+ *
+ * @param {NutritionType} nutrition The nutrition type preselected in the usage dialog.
+ * @param {{ item: Item5e, quantity: number }[]} entries The selected consumption entries.
+ * @returns {Promise<void>} A promise that resolves when all usages finish. A canceled usage skips only its item.
+ */
+async function useConsumeActivities(nutrition, entries) {
+  for ( const entry of entries ) {
+    const activity = getConsumeActivity(entry.item);
+    await activity?.use({ [MODULE_ID]: { nutrition, units: entry.quantity } });
+  }
+}
+
+/* -------------------------------------------- */
+
+/**
  * Get all valid food items on an actor.
  *
  * @param {Actor5e} actor The actor to inspect.
@@ -190,11 +211,6 @@ function getWaterCandidates(actor) {
   return actor.items.filter(item => {
     if ( item.type !== "consumable" ) return false;
     if ( !item.system.quantity ) return false;
-    if ( !WATER_IDENTIFIERS.has(item.system.identifier) ) return false;
-    if ( item.system.identifier === "water-pint" ) {
-      return (item.container?.type === "container")
-        && (item.container.system.identifier === WATERSKIN_IDENTIFIER);
-    }
-    return true;
+    return WATER_IDENTIFIERS.has(item.system.identifier);
   });
 }

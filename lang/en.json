@@ -29,6 +29,7 @@
       "Owned": "Owned: {quantity}",
       "Decrease": "Decrease {item}",
       "Increase": "Increase {item}",
+      "NoActivity": "This item has no activity that consumes it. Its quantity is reduced instead.",
       "WarningDropDuplicate": "That item is already available in this dialog.",
       "WarningDropEmpty": "That item has no remaining quantity.",
       "WarningDropInvalid": "Only consumables from this actor's inventory can be added here.",
@@ -88,7 +89,8 @@
       "Food": "Food",
       "Water": "Water",
       "Both": "Food and Water",
-      "None": "None"
+      "None": "None",
+      "WarningUnits": "{item} does not lose quantity when used. Only one unit was consumed."
     },
     "Settings": {
       "CalendarMode": {
@@ -104,7 +106,7 @@
       },
       "DisableActivityNutrition": {
         "Name": "Disable Activity Dialog Integration",
-        "Hint": "Do not add the nutrition option to the usage dialog of food items."
+        "Hint": "Do not add the nutrition option to the usage dialog of food items. The Food and Water buttons then only reduce the quantity of the chosen items."
       }
     },
     "Calendar": {

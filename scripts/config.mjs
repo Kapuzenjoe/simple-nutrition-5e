@@ -15,7 +15,7 @@ export const SAVE_DC_LEGACY = 15;
 
 export const MAGICAL_BERRIES_IDENTIFIER = "magical-berries";
 export const RATIONS_IDENTIFIER = "rations";
-export const WATER_ITEM_AMOUNT = 0.125;
+export const WATER_GALLONS_PER_POUND = 0.125;
 export const LITERS_PER_GALLON = 3.78541;
 export const WATER_IDENTIFIERS = new Set(["water-pint", "water-fresh-pint"]);
 export const WATERSKIN_IDENTIFIER = "waterskin";

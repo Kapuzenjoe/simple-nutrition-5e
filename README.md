@@ -77,8 +77,8 @@ Click Food or Water on the tracker to open the Consume Food or Drink Water dialo
 - **Required and Selected.** The dialog shows the day's requirement and the amount picked so far. For food,
   it also shows the Days without food counter once it is above 0.
 - **Items.** The character's matching consumables are listed with an Owned count and a stepper each. Food
-  counts by the item's weight. Water counts one pint per item. A water pint only counts while it sits in a
-  Waterskin, while fresh water pints count anywhere in the inventory.
+  counts by the item's weight. Water counts by weight too, with one pound as one pint. Water pints count
+  anywhere in the inventory, and the container of an item is shown next to its name.
 - **Magical berries.** They count as a full day's food.
 - **Add Consumable.** Drag a consumable from the character's inventory into the dialog to add it to the
   list.
@@ -86,7 +86,10 @@ Click Food or Water on the tracker to open the Consume Food or Drink Water dialo
   fills the day's water requirement.
 - **Free Food Source Available.** Eats without spending items, such as a tavern meal, and fills the day's
   food requirement.
-- **Consume.** Subtracts the picked quantities from the inventory and adds the amount to today's total.
+- **Consume.** Uses the activity that consumes each picked item, with the Counts As choice of the usage dialog
+  preselected. The usage dialog opens once per item and takes all picked units at once, so refunding its chat
+  card returns all of them. Items without such an activity show a warning icon and have their quantity
+  reduced instead. The nutrition is added to today's total.
 - **Manage Food and Manage Water.** Once food or water is recorded today, the button opens a choice
   instead. Consume More adds to today's total, and Clear Food or Clear Water resets it. Clearing brings back
   a Dehydration or Malnutrition condition that the intake had removed.
@@ -225,8 +228,8 @@ Three world settings are available in the module settings.
   soon as one is present. Set it to Always On or Always Off to decide by hand.
 - **Disable Group Sheet Integration.** Hides the nutrition tracker on the member entries of the Group sheet and
   the free food and water button in its header. It is off by default.
-- **Disable Activity Dialog Integration.** Hides the Nutrition choice in the usage dialog of food items. It
-  is off by default.
+- **Disable Activity Dialog Integration.** Hides the Nutrition choice in the usage dialog of food items. The
+  Consume dialog then only reduces the picked quantities. It is off by default.
 
 ---
 

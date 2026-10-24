@@ -133,6 +133,10 @@
   margin-inline-end: auto;
 }
 
+.dnd5e2.simple-nutrition-consume .simple-nutrition-consume__warning {
+  color: var(--color-level-warning);
+}
+
 .dnd5e2.simple-nutrition-consume input[type="number"] {
   flex: 0 0 4.5rem;
   text-align: center;

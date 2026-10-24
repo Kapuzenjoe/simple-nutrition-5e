@@ -12,7 +12,8 @@ import {
   NUTRITION_FLAG,
   SAVE_DC_LEGACY,
   SAVE_DC_MODERN,
-  WATER_ITEM_AMOUNT
+  SETTING_KEYS,
+  WATER_GALLONS_PER_POUND
 } from "../config.mjs";
 
 /**
@@ -65,9 +66,42 @@ export function getGallonAbbreviation() {
  * @returns {number} The nutrition amount provided by one item.
  */
 export function getNutritionAmount(actor, type, item) {
-  if ( type !== "food" ) return WATER_ITEM_AMOUNT;
+  if ( type !== "food" ) {
+    const weight = game.dnd5e.utils.convertWeight(item.system.weight.value, item.system.weight.units, "lb");
+    return weight * WATER_GALLONS_PER_POUND;
+  }
   if ( item.system.identifier === MAGICAL_BERRIES_IDENTIFIER ) return getNutritionNeeds(actor).food;
   return game.dnd5e.utils.convertWeight(item.system.weight.value, item.system.weight.units, "lb");
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the first usable activity that consumes the item itself, if nutrition can be recorded for its use.
+ *
+ * @param {Item5e} item The item being consumed.
+ * @returns {Activity|null} The activity that consumes the item, or null if there is none.
+ */
+export function getConsumeActivity(item) {
+  if ( game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_ACTIVITY_NUTRITION) ) return null;
+  if ( (item.actor?.type !== "character") || (item.system.type.value !== "food") ) return null;
+  return item.system.activities.find(activity => {
+    return activity.canUse && activity.consumption.targets.some(target => consumesItem(item, target));
+  }) ?? null;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Check whether a consumption target spends the item that owns the activity.
+ *
+ * @param {Item5e} item The item owning the activity.
+ * @param {ConsumptionTargetData} target The consumption target to inspect.
+ * @returns {boolean} True if the target spends the uses or quantity of the item itself.
+ */
+function consumesItem(item, target) {
+  if ( target.type === "itemUses" ) return !target.target || (target.target === item.id);
+  return (target.type === "material") && (target.target === item.id);
 }
 
 /* -------------------------------------------- */
@@ -105,7 +139,8 @@ export function getNutritionCandidate(actor, type, item) {
     quantity: item.system.quantity,
     container: item.container?.name ?? null,
     amount: getNutritionAmountLabel(actor, type, item),
-    value: getNutritionAmount(actor, type, item)
+    value: getNutritionAmount(actor, type, item),
+    noActivity: !game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_ACTIVITY_NUTRITION) && !getConsumeActivity(item)
   };
 }
 

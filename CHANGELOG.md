@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 1.2.0
+
+- Added a warning icon to items in the Consume dialog that have no consuming activity and lose quantity instead.
+- Changed the Food and Water buttons to use a food item's consuming activity, with the nutrition option preselected, instead of only reducing its quantity.
+- Changed water pints to count anywhere in the inventory instead of only in a Waterskin.
+- Fixed water items counting as a single pint regardless of their weight (#5).
+- Fixed scaled uses of a food item only counting a single item as nutrition.
+
 ## Version 1.1.0
 
 - Added support for Calendaria and Ember calendars.

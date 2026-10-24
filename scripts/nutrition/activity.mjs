@@ -54,11 +54,54 @@ export function onRenderActivityUsageDialog(dialog, element) {
  * @param {ActivityUsageResults} results          Final details on the usage.
  */
 export function onPostUseActivity(activity, usageConfig, results) {
+  const extra = usageConfig[MODULE_ID]?.extra ?? 0;
+  if ( (extra > 0) && (results.message instanceof ChatMessage) ) {
+    results.message.setFlag(MODULE_ID, "extraUnits", extra)
+      .catch(err => Hooks.onError("onPostUseActivity", err, { log: "error" }));
+  }
+
   const choice = usageConfig[MODULE_ID]?.nutrition;
   if ( !Object.hasOwn(ACTIVITY_NUTRITION_CHOICES, choice) || (choice === "none") ) return;
   if ( !canRecordNutrition(activity.item, usageConfig) ) return;
-  recordNutrition(activity.item, choice, results.message)
+  const scaling = Number.isFinite(usageConfig.scaling) ? usageConfig.scaling : 0;
+  recordNutrition(activity.item, choice, results.message, 1 + scaling + extra)
     .catch(err => Hooks.onError("onPostUseActivity", err, { log: "error" }));
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Deduct the additional units picked in the Consume dialog from the quantity of the used item, so that the usage
+ * consumes and refunds all of them together. Consuming again from the chat card deducts the units stored on the
+ * message. Units are only deducted if the usage reduces the quantity of the item, otherwise a warning is shown.
+ * @param {Activity} activity                          Activity being used.
+ * @param {ActivityUseConfiguration} usageConfig        Configuration data for the usage.
+ * @param {ActivityMessageConfiguration} messageConfig  Configuration info for the usage message.
+ * @param {ActivityUsageUpdates} updates                Updates about to be applied to the actor and its items.
+ */
+export function onActivityConsumption(activity, usageConfig, messageConfig, updates) {
+  const settings = usageConfig[MODULE_ID];
+  const messageId = usageConfig.event?.target?.closest?.("[data-message-id]")?.dataset.messageId;
+  const stored = game.messages.get(messageId)?.getFlag(MODULE_ID, "extraUnits");
+  const extra = settings ? Number(settings.units) - 1 : Number(stored);
+  if ( !(extra > 0) || (usageConfig.consume === false) ) return;
+
+  const item = activity.actor.items.get(activity.item.id);
+  const index = updates.item.findIndex(update => update._id === item?.id);
+  if ( index === -1 ) return;
+
+  const update = updates.item[index];
+  const base = update["system.quantity"];
+  if ( base === undefined ) {
+    if ( settings ) ui.notifications.warn(_loc("SIMPLE_NUTRITION.Usage.WarningUnits", { item: item.name }));
+    return;
+  }
+  const quantity = Math.max(0, base - extra);
+  if ( (quantity === 0) && item.system.uses?.autoDestroy ) {
+    updates.item.splice(index, 1);
+    updates.delete.push(item.id);
+  } else update["system.quantity"] = quantity;
+  if ( settings ) settings.extra = base - quantity;
 }
 
 /* -------------------------------------------- */
@@ -87,9 +130,10 @@ export function onUpdateChatMessage(message, changes, options, userId) {
  * @param {Item5e} item                     Food item that was used.
  * @param {ActivityNutritionChoice} choice  Chosen nutrition, never `none`.
  * @param {ChatMessage5e|object} [message]  Usage message of the activity.
+ * @param {number} [units=1]                Number of items consumed by the usage.
  * @returns {Promise<void>}
  */
-async function recordNutrition(item, choice, message) {
+async function recordNutrition(item, choice, message, units=1) {
   const actor = item.actor;
   const config = getNutritionConfig(actor);
   const needs = getNutritionNeeds(actor);
@@ -100,7 +144,7 @@ async function recordNutrition(item, choice, message) {
     const track = (type === "food") ? config.trackFood : config.trackWater;
     if ( track === false ) continue;
     const before = getNutritionState(actor)[type];
-    await applyConsumption(actor, type, getNutritionAmount(actor, type, item) / needs[type]);
+    await applyConsumption(actor, type, (getNutritionAmount(actor, type, item) * units) / needs[type]);
     record[type] = getNutritionState(actor)[type] - before;
   }
 
