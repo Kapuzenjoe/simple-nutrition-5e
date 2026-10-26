@@ -64,7 +64,7 @@ export function onPostUseActivity(activity, usageConfig, results) {
   if ( !Object.hasOwn(ACTIVITY_NUTRITION_CHOICES, choice) || (choice === "none") ) return;
   if ( !canRecordNutrition(activity.item, usageConfig) ) return;
   const scaling = Number.isFinite(usageConfig.scaling) ? usageConfig.scaling : 0;
-  recordNutrition(activity, choice, results.message, 1 + scaling + extra)
+  recordNutrition(activity, choice, results.message, 1 + scaling + extra, usageConfig[MODULE_ID].amounts)
     .catch(err => Hooks.onError("onPostUseActivity", err, { log: "error" }));
 }
 
@@ -72,6 +72,7 @@ export function onPostUseActivity(activity, usageConfig, results) {
 
 /**
  * Apply the additional units picked in the Consume dialog to the quantity and uses that the usage consumes.
+ * Also store the nutrition of one unit before its item is consumed.
  * @param {Activity} activity                          Activity being used.
  * @param {ActivityUseConfiguration} usageConfig        Configuration data for the usage.
  * @param {ActivityMessageConfiguration} messageConfig  Configuration info for the usage message.
@@ -80,6 +81,12 @@ export function onPostUseActivity(activity, usageConfig, results) {
  */
 export function onActivityConsumption(activity, usageConfig, messageConfig, updates) {
   const settings = usageConfig[MODULE_ID];
+  if ( settings ) {
+    settings.amounts = {
+      food: getNutritionAmount(activity.actor, "food", activity.item, activity),
+      water: getNutritionAmount(activity.actor, "water", activity.item, activity)
+    };
+  }
   const messageId = usageConfig.event?.target?.closest?.("[data-message-id]")?.dataset.messageId;
   const stored = game.messages.get(messageId)?.getFlag(MODULE_ID, "extraUnits");
   const extra = settings ? Number(settings.units) - 1 : Number(stored);
@@ -90,8 +97,16 @@ export function onActivityConsumption(activity, usageConfig, messageConfig, upda
     const update = updates.item[index];
     const item = activity.actor.items.get(update._id);
     const { quantity, uses } = item.system;
-    if ( "system.quantity" in update ) update["system.quantity"] += (update["system.quantity"] - quantity) * extra;
-    if ( "system.uses.spent" in update ) update["system.uses.spent"] += (update["system.uses.spent"] - uses.spent) * extra;
+    if ( uses.autoDestroy && uses.max && ("system.uses.spent" in update) ) {
+      const used = ((quantity - (update["system.quantity"] ?? quantity)) * uses.max)
+        + (update["system.uses.spent"] - uses.spent);
+      const total = uses.spent + (used * (extra + 1));
+      update["system.quantity"] = quantity - Math.floor(total / uses.max);
+      update["system.uses.spent"] = total % uses.max;
+    } else {
+      if ( "system.quantity" in update ) update["system.quantity"] += (update["system.quantity"] - quantity) * extra;
+      if ( "system.uses.spent" in update ) update["system.uses.spent"] += (update["system.uses.spent"] - uses.spent) * extra;
+    }
     scaled ||= ("system.quantity" in update) || ("system.uses.spent" in update);
     const exceeded = (update["system.quantity"] < 0) || (update["system.uses.spent"] < 0)
       || (update["system.uses.spent"] > uses?.max);
@@ -138,11 +153,12 @@ export function onUpdateChatMessage(message, changes, options, userId) {
  * @param {Activity} activity               Activity of the food item that was used.
  * @param {ActivityNutritionChoice} choice  Chosen nutrition, never `none`.
  * @param {ChatMessage5e|object} [message]  Usage message of the activity.
- * @param {number} [units=1]                Number of items consumed by the usage.
+ * @param {number} units                    Number of items consumed by the usage.
+ * @param {object} amounts                  Nutrition provided by one item as `food` and `water`.
  * @returns {Promise<void>}
  */
-async function recordNutrition(activity, choice, message, units=1) {
-  const { actor, item } = activity;
+async function recordNutrition(activity, choice, message, units, amounts) {
+  const { actor } = activity;
   const config = getNutritionConfig(actor);
   const needs = getNutritionNeeds(actor);
   const types = (choice === "both") ? ["food", "water"] : [choice];
@@ -152,7 +168,7 @@ async function recordNutrition(activity, choice, message, units=1) {
     const track = (type === "food") ? config.trackFood : config.trackWater;
     if ( track === false ) continue;
     const before = getNutritionState(actor)[type];
-    await applyConsumption(actor, type, (getNutritionAmount(actor, type, item, activity) * units) / needs[type]);
+    await applyConsumption(actor, type, (amounts[type] * units) / needs[type]);
     record[type] = getNutritionState(actor)[type] - before;
   }
 

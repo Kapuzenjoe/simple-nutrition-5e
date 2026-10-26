@@ -76,7 +76,7 @@ export function getNutritionAmount(actor, type, item, activity=getConsumeActivit
 
 /**
  * Get the weight in pounds that one use of an item provides nutrition from. It is the weight of the item itself,
- * or of the other item whose quantity the activity spends, divided by the maximum uses of the item.
+ * or of the other item whose quantity or uses the activity spends, divided by the maximum uses of that item.
  * The unmodified legacy Waterskin does not count the one pound of its skin.
  *
  * @param {Actor5e} actor The owning actor.
@@ -86,10 +86,12 @@ export function getNutritionAmount(actor, type, item, activity=getConsumeActivit
  */
 function getNutritionWeight(actor, item, activity) {
   const target = getConsumeTarget(activity);
-  const { value, units } = (getMaterialItem(actor, item, target) ?? item).system.weight;
+  const spent = (target?.type === "itemUses") ? actor.items.get(target.target) : getMaterialItem(actor, item, target);
+  const source = spent?.system.weight ? spent : item;
+  const { value, units } = source.system.weight;
   const weight = game.dnd5e.utils.convertWeight(value, units, "lb");
-  const max = (target?.type === "itemUses") ? (item.system.uses.max || 1) : 1;
-  const legacy = (item.system.identifier === WATERSKIN_IDENTIFIER) && (item.system.source.rules === "2014");
+  const max = (target?.type === "itemUses") ? (source.system.uses.max || 1) : 1;
+  const legacy = (source.system.identifier === WATERSKIN_IDENTIFIER) && (source.system.source.rules === "2014");
   const skin = (legacy && (weight === max + 1)) ? 1 : 0;
   return (weight - skin) / max;
 }

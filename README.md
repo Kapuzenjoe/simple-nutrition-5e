@@ -80,8 +80,9 @@ Click Food or Water on the tracker to open the Consume Food or Drink Water dialo
   magical berries only appear under Food, water items and the Waterskin only under Water. Food counts by the
   item's weight. Water counts by weight too, with one pound as one pint. Water pints count anywhere in the
   inventory, and the container of an item is shown under its name. If the item's activity spends the quantity
-  of another item, that item is shown there too and its weight counts instead. One use of an item with
-  several uses counts for its weight divided by them. The skin of the legacy Waterskin does not count.
+  of another item, that item is shown there too and its weight counts instead. If it spends the uses of
+  another item, that item's weight counts. One use of an item with several uses counts for its weight divided
+  by them. The skin of the legacy Waterskin does not count.
 - **Items without weight.** They count as a full day's food or water, such as magical berries.
 - **Add Consumable.** Drag a consumable from the character's inventory into the dialog to add it to the
   list.
