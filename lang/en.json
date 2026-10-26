@@ -26,10 +26,12 @@
       "AmountFullDay": "full day",
       "DropLegend": "Add Consumable",
       "DropHint": "Drag a consumable from this actor's inventory here to add it to the list.",
-      "Owned": "Owned: {quantity}",
+      "Available": "Available: {units}",
       "Decrease": "Decrease {item}",
       "Increase": "Increase {item}",
-      "NoActivity": "This item has no activity that consumes it. Its quantity is reduced instead.",
+      "Uses": "Uses: {item}",
+      "NoActivity": "This item has no activity that consumes a resource. Its quantity is reduced instead.",
+      "NoUses": "This item's activity has no uses left to spend.",
       "WarningDropDuplicate": "That item is already available in this dialog.",
       "WarningDropEmpty": "That item has no remaining quantity.",
       "WarningDropInvalid": "Only consumables from this actor's inventory can be added here.",
@@ -90,7 +92,8 @@
       "Water": "Water",
       "Both": "Food and Water",
       "None": "None",
-      "WarningUnits": "{item} does not lose quantity when used. Only one unit was consumed."
+      "WarningUnits": "{item} has no quantity or uses to consume more than once. Only one unit was consumed.",
+      "WarningUnitsLeft": "{item} does not have enough left for {units} units."
     },
     "Settings": {
       "CalendarMode": {

@@ -2,11 +2,15 @@
 
 ## Version 1.2.0
 
-- Added a warning icon to items in the Consume dialog that have no consuming activity and lose quantity instead.
-- Changed the Food and Water buttons to use a food item's consuming activity, with the nutrition option preselected, instead of only reducing its quantity.
-- Changed water pints to count anywhere in the inventory instead of only in a Waterskin.
 - Fixed water items counting as a single pint regardless of their weight (#5).
 - Fixed scaled uses of a food item only counting a single item as nutrition.
+- Reworked the Food and Water buttons:
+  - Added warning icons for items without a consuming activity or without uses left, and the item an activity spends under the item's name.
+  - Changed the buttons to use an item's consuming activity, without its usage dialog, instead of only reducing its quantity.
+  - Changed several picked units to use a plain Utility activity once and any other activity once per unit, up to the uses left.
+  - Changed Rations and magical berries to list only under Food, and water items and the Waterskin only under Water.
+  - Changed food items to count by the weight of what their activity consumes, and items without weight to count as a full day.
+  - Changed water pints to count anywhere in the inventory instead of only in a Waterskin.
 
 ## Version 1.1.0
 

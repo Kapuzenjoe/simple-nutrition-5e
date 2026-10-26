@@ -64,11 +64,13 @@
  * @property {string} id The item document id.
  * @property {string} name The item name.
  * @property {string} img The item image path.
- * @property {number} quantity The available item quantity.
+ * @property {number} units The number of units that can be selected.
  * @property {string|null} container The parent container name, if any.
+ * @property {{ name: string, container: string|null }|null} consumes The other item whose quantity is spent, if any.
  * @property {string|null} amount A localized amount hint for one item.
  * @property {number} value The nutrition value provided by one item.
  * @property {boolean} noActivity Whether the item has no usable consuming activity and is reduced by quantity.
+ * @property {boolean} noUses Whether the consuming activity spends uses that are used up.
  */
 
 /**

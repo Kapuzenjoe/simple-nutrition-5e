@@ -64,20 +64,19 @@ export function onPostUseActivity(activity, usageConfig, results) {
   if ( !Object.hasOwn(ACTIVITY_NUTRITION_CHOICES, choice) || (choice === "none") ) return;
   if ( !canRecordNutrition(activity.item, usageConfig) ) return;
   const scaling = Number.isFinite(usageConfig.scaling) ? usageConfig.scaling : 0;
-  recordNutrition(activity.item, choice, results.message, 1 + scaling + extra)
+  recordNutrition(activity, choice, results.message, 1 + scaling + extra)
     .catch(err => Hooks.onError("onPostUseActivity", err, { log: "error" }));
 }
 
 /* -------------------------------------------- */
 
 /**
- * Deduct the additional units picked in the Consume dialog from the quantity of the used item, so that the usage
- * consumes and refunds all of them together. Consuming again from the chat card deducts the units stored on the
- * message. Units are only deducted if the usage reduces the quantity of the item, otherwise a warning is shown.
+ * Apply the additional units picked in the Consume dialog to the quantity and uses that the usage consumes.
  * @param {Activity} activity                          Activity being used.
  * @param {ActivityUseConfiguration} usageConfig        Configuration data for the usage.
  * @param {ActivityMessageConfiguration} messageConfig  Configuration info for the usage message.
  * @param {ActivityUsageUpdates} updates                Updates about to be applied to the actor and its items.
+ * @returns {false|void}                                False if there is not enough left for all units.
  */
 export function onActivityConsumption(activity, usageConfig, messageConfig, updates) {
   const settings = usageConfig[MODULE_ID];
@@ -86,22 +85,31 @@ export function onActivityConsumption(activity, usageConfig, messageConfig, upda
   const extra = settings ? Number(settings.units) - 1 : Number(stored);
   if ( !(extra > 0) || (usageConfig.consume === false) ) return;
 
-  const item = activity.actor.items.get(activity.item.id);
-  const index = updates.item.findIndex(update => update._id === item?.id);
-  if ( index === -1 ) return;
+  let scaled = false;
+  for ( let index = updates.item.length - 1; index >= 0; index-- ) {
+    const update = updates.item[index];
+    const item = activity.actor.items.get(update._id);
+    const { quantity, uses } = item.system;
+    if ( "system.quantity" in update ) update["system.quantity"] += (update["system.quantity"] - quantity) * extra;
+    if ( "system.uses.spent" in update ) update["system.uses.spent"] += (update["system.uses.spent"] - uses.spent) * extra;
+    scaled ||= ("system.quantity" in update) || ("system.uses.spent" in update);
+    const exceeded = (update["system.quantity"] < 0) || (update["system.uses.spent"] < 0)
+      || (update["system.uses.spent"] > uses?.max);
+    if ( exceeded ) {
+      ui.notifications.warn(_loc("SIMPLE_NUTRITION.Usage.WarningUnitsLeft", { item: activity.item.name, units: extra + 1 }));
+      return false;
+    }
+    if ( (update["system.quantity"] === 0) && uses?.autoDestroy ) {
+      updates.item.splice(index, 1);
+      updates.delete.push(item.id);
+    }
+  }
 
-  const update = updates.item[index];
-  const base = update["system.quantity"];
-  if ( base === undefined ) {
-    if ( settings ) ui.notifications.warn(_loc("SIMPLE_NUTRITION.Usage.WarningUnits", { item: item.name }));
+  if ( !scaled ) {
+    if ( settings ) ui.notifications.warn(_loc("SIMPLE_NUTRITION.Usage.WarningUnits", { item: activity.item.name }));
     return;
   }
-  const quantity = Math.max(0, base - extra);
-  if ( (quantity === 0) && item.system.uses?.autoDestroy ) {
-    updates.item.splice(index, 1);
-    updates.delete.push(item.id);
-  } else update["system.quantity"] = quantity;
-  if ( settings ) settings.extra = base - quantity;
+  if ( settings ) settings.extra = extra;
 }
 
 /* -------------------------------------------- */
@@ -127,14 +135,14 @@ export function onUpdateChatMessage(message, changes, options, userId) {
 /**
  * Add the chosen nutrition of one item usage to the actor's current day and store the recorded amounts on the
  * usage message.
- * @param {Item5e} item                     Food item that was used.
+ * @param {Activity} activity               Activity of the food item that was used.
  * @param {ActivityNutritionChoice} choice  Chosen nutrition, never `none`.
  * @param {ChatMessage5e|object} [message]  Usage message of the activity.
  * @param {number} [units=1]                Number of items consumed by the usage.
  * @returns {Promise<void>}
  */
-async function recordNutrition(item, choice, message, units=1) {
-  const actor = item.actor;
+async function recordNutrition(activity, choice, message, units=1) {
+  const { actor, item } = activity;
   const config = getNutritionConfig(actor);
   const needs = getNutritionNeeds(actor);
   const types = (choice === "both") ? ["food", "water"] : [choice];
@@ -144,7 +152,7 @@ async function recordNutrition(item, choice, message, units=1) {
     const track = (type === "food") ? config.trackFood : config.trackWater;
     if ( track === false ) continue;
     const before = getNutritionState(actor)[type];
-    await applyConsumption(actor, type, (getNutritionAmount(actor, type, item) * units) / needs[type]);
+    await applyConsumption(actor, type, (getNutritionAmount(actor, type, item, activity) * units) / needs[type]);
     record[type] = getNutritionState(actor)[type] - before;
   }
 

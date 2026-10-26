@@ -8,14 +8,16 @@ import {
   CONDITION_EFFECT_DEHYDRATED,
   CONDITION_EFFECT_MALNOURISHED,
   CONDITION_MALNUTRITION,
+  MAGICAL_BERRIES_IDENTIFIER,
   MODULE_ID,
+  RATIONS_IDENTIFIER,
   WATER_IDENTIFIERS,
   WATERSKIN_IDENTIFIER
 } from "../config.mjs";
 
 import {
   formatNutritionAmount,
-  getConsumeActivity,
+  getConsumeActivities,
   getNutritionAmount,
   getNutritionCandidate,
   getNutritionConfig,
@@ -33,8 +35,7 @@ import {
  */
 export async function consumeNutrition(actor, nutrition) {
   const isFood = nutrition === "food";
-  const items = (nutrition === "food" ? getFoodCandidates(actor) : getWaterCandidates(actor))
-    .map(item => getNutritionCandidate(actor, nutrition, item));
+  const items = getCandidates(actor, nutrition).map(item => getNutritionCandidate(actor, nutrition, item));
   const needs = getNutritionNeeds(actor);
 
   /**
@@ -54,7 +55,7 @@ export async function consumeNutrition(actor, nutrition) {
     const item = actor.items.get(entry.itemId);
     return item ? [{ item, quantity: entry.quantity }] : [];
   });
-  const activityEntries = free ? [] : entries.filter(entry => getConsumeActivity(entry.item));
+  const activityEntries = free ? [] : entries.filter(entry => getConsumeActivities(entry.item).length);
   const quantityEntries = free ? [] : entries.filter(entry => !activityEntries.includes(entry));
   const consumed = free ? 1
     : quantityEntries.reduce((total, entry) => {
@@ -167,50 +168,44 @@ async function consumeSelectedItems(actor, entries) {
 /* -------------------------------------------- */
 
 /**
- * Use the consuming activity of each selected item once. The usage consumes all selected units of the item.
+ * Use each selected item through its consuming activity, without the usage dialog. A single utility activity is
+ * used once for all selected units. Any other activity is used once per unit, as the system triggers its follow-up
+ * actions for each usage. The system asks which activity to use if the item has several consuming ones.
  *
- * @param {NutritionType} nutrition The nutrition type preselected in the usage dialog.
+ * @param {NutritionType} nutrition The nutrition type recorded for the usage.
  * @param {{ item: Item5e, quantity: number }[]} entries The selected consumption entries.
  * @returns {Promise<void>} A promise that resolves when all usages finish. A canceled usage skips only its item.
  */
 async function useConsumeActivities(nutrition, entries) {
   for ( const entry of entries ) {
-    const activity = getConsumeActivity(entry.item);
-    await activity?.use({ [MODULE_ID]: { nutrition, units: entry.quantity } });
+    const activities = getConsumeActivities(entry.item);
+    const bundled = (activities.length === 1) && (activities[0].type === "utility");
+    const used = (activities.length === 1) ? activities[0] : entry.item;
+    const config = { [MODULE_ID]: { nutrition, units: bundled ? entry.quantity : 1 } };
+    for ( let count = bundled ? 1 : entry.quantity; count > 0; count-- ) {
+      if ( !await used.use(config, { configure: false }) ) break;
+    }
   }
 }
 
 /* -------------------------------------------- */
 
 /**
- * Get all valid food items on an actor.
+ * Get all valid items on an actor for a nutrition type. Rations and magical berries are only listed as food, water
+ * items and the Waterskin only as water.
  *
  * @param {Actor5e} actor The actor to inspect.
- * @returns {Item5e[]} The actor's valid food items.
+ * @param {NutritionType} nutrition The nutrition type being consumed.
+ * @returns {Item5e[]} The actor's valid items.
  */
-function getFoodCandidates(actor) {
+function getCandidates(actor, nutrition) {
+  const excluded = (nutrition === "food")
+    ? [...WATER_IDENTIFIERS, WATERSKIN_IDENTIFIER]
+    : [RATIONS_IDENTIFIER, MAGICAL_BERRIES_IDENTIFIER];
   return actor.items.filter(item => {
     if ( item.type !== "consumable" ) return false;
     if ( !item.system.quantity ) return false;
     if ( item.system.type.value !== "food" ) return false;
-    if ( WATER_IDENTIFIERS.has(item.system.identifier) ) return false;
-    if ( item.system.identifier === WATERSKIN_IDENTIFIER ) return false;
-    return getNutritionAmount(actor, "food", item) > 0;
-  });
-}
-
-/* -------------------------------------------- */
-
-/**
- * Get all valid water items on an actor.
- *
- * @param {Actor5e} actor The actor to inspect.
- * @returns {Item5e[]} The actor's valid water items.
- */
-function getWaterCandidates(actor) {
-  return actor.items.filter(item => {
-    if ( item.type !== "consumable" ) return false;
-    if ( !item.system.quantity ) return false;
-    return WATER_IDENTIFIERS.has(item.system.identifier);
+    return !excluded.includes(item.system.identifier);
   });
 }

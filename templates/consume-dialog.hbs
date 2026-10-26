@@ -36,14 +36,20 @@
         <legend>{{ legend }}</legend>
         {{#each nutritionItems}}
         <div class="form-group">
-            <label for="{{ ../moduleId }}-{{ id }}">
+            <label class="simple-nutrition-consume__item" for="{{ ../moduleId }}-{{ id }}">
                 {{#if img}}<img src="{{ img }}" alt="" width="24" height="24">{{/if}}
-                <span>{{ name }}</span>
-                {{#if container}} <span class="hint">({{ container }})</span>{{/if}}
-                {{#if noActivity}}<i class="fa-solid fa-triangle-exclamation simple-nutrition-consume__warning" data-tooltip aria-label="{{ localize "SIMPLE_NUTRITION.Dialog.NoActivity" }}"></i>{{/if}}
+                <span class="name-stacked">
+                    <span class="title">
+                        {{ name }}
+                        {{#if noActivity}}<i class="fa-solid fa-triangle-exclamation simple-nutrition-consume__warning" data-tooltip aria-label="{{ localize "SIMPLE_NUTRITION.Dialog.NoActivity" }}"></i>{{/if}}
+                        {{#if noUses}}<i class="fa-solid fa-triangle-exclamation simple-nutrition-consume__warning" data-tooltip aria-label="{{ localize "SIMPLE_NUTRITION.Dialog.NoUses" }}"></i>{{/if}}
+                    </span>
+                    {{#if container}}<span class="subtitle">({{ container }})</span>{{/if}}
+                    {{#if consumes}}<span class="subtitle">{{ localize "SIMPLE_NUTRITION.Dialog.Uses" item=consumes.name }}{{#if consumes.container}} ({{ consumes.container }}){{/if}}</span>{{/if}}
+                </span>
             </label>
             <div class="form-fields">
-                <span class="hint">{{ owned }}{{#if amountLabel}} | {{ amountLabel }}{{/if}}</span>
+                <span class="hint">{{ available }}{{#if amountLabel}} | {{ amountLabel }}{{/if}}</span>
                 <button type="button" class="unbutton" data-action="stepQuantity" data-item-id="{{ id }}" data-step="-1" aria-label="{{ decreaseLabel }}">
                     <i class="fa-solid fa-minus" inert></i>
                 </button>
@@ -52,7 +58,7 @@
                     type="number"
                     name="items.{{ id }}"
                     min="0"
-                    max="{{ quantity }}"
+                    max="{{ units }}"
                     step="1"
                     value="0"
                     readonly

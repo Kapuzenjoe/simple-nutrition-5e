@@ -93,7 +93,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
         ui.notifications.warn(_loc("SIMPLE_NUTRITION.Dialog.WarningItemMissing"));
         return;
       }
-      if ( entry.quantity > item.system.quantity ) {
+      if ( entry.quantity > this.items.find(candidate => candidate.id === item.id)?.units ) {
         ui.notifications.warn(_loc("SIMPLE_NUTRITION.Dialog.WarningNotEnough", {
           item: item.name
         }));
@@ -301,7 +301,7 @@ export default class NutritionConsumeDialog extends Dialog5e {
       : "SIMPLE_NUTRITION.Dialog.LegendWater");
     const nutritionItems = this.items.map(item => ({
       ...item,
-      owned: _loc("SIMPLE_NUTRITION.Dialog.Owned", { quantity: item.quantity }),
+      available: _loc("SIMPLE_NUTRITION.Dialog.Available", { units: item.units }),
       amountLabel: item.amount ? _loc("SIMPLE_NUTRITION.Dialog.Each", { amount: item.amount }) : null,
       decreaseLabel: _loc("SIMPLE_NUTRITION.Dialog.Decrease", { item: item.name }),
       increaseLabel: _loc("SIMPLE_NUTRITION.Dialog.Increase", { item: item.name })

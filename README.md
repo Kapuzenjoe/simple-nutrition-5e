@@ -76,20 +76,26 @@ Click Food or Water on the tracker to open the Consume Food or Drink Water dialo
 
 - **Required and Selected.** The dialog shows the day's requirement and the amount picked so far. For food,
   it also shows the Days without food counter once it is above 0.
-- **Items.** The character's matching consumables are listed with an Owned count and a stepper each. Food
-  counts by the item's weight. Water counts by weight too, with one pound as one pint. Water pints count
-  anywhere in the inventory, and the container of an item is shown next to its name.
-- **Magical berries.** They count as a full day's food.
+- **Items.** The character's food consumables are listed with an Available count and a stepper each. Rations and
+  magical berries only appear under Food, water items and the Waterskin only under Water. Food counts by the
+  item's weight. Water counts by weight too, with one pound as one pint. Water pints count anywhere in the
+  inventory, and the container of an item is shown under its name. If the item's activity spends the quantity
+  of another item, that item is shown there too and its weight counts instead. One use of an item with
+  several uses counts for its weight divided by them. The skin of the legacy Waterskin does not count.
+- **Items without weight.** They count as a full day's food or water, such as magical berries.
 - **Add Consumable.** Drag a consumable from the character's inventory into the dialog to add it to the
   list.
 - **Fresh Water Source Available.** Drinks from a fresh water source without spending carried water and
   fills the day's water requirement.
 - **Free Food Source Available.** Eats without spending items, such as a tavern meal, and fills the day's
   food requirement.
-- **Consume.** Uses the activity that consumes each picked item, with the Counts As choice of the usage dialog
-  preselected. The usage dialog opens once per item and takes all picked units at once, so refunding its chat
-  card returns all of them. Items without such an activity show a warning icon and have their quantity
-  reduced instead. The nutrition is added to today's total.
+- **Consume.** Uses the activity that consumes each picked item and counts it as food or water, depending on
+  the button. A plain Utility activity takes all picked units at once, so refunding its chat card returns all of
+  them. Any other activity, such as a healing one, is used once per picked unit and gets a chat card each. The
+  usage dialog is skipped, and an item with several consuming activities asks which one to use.
+  Items without a consuming activity show a warning icon and have their quantity reduced instead. An item
+  whose activity has no uses left shows a warning icon too, and the system refuses its usage. The nutrition
+  is added to today's total.
 - **Manage Food and Manage Water.** Once food or water is recorded today, the button opens a choice
   instead. Consume More adds to today's total, and Clear Food or Clear Water resets it. Clearing brings back
   a Dehydration or Malnutrition condition that the intake had removed.

@@ -137,6 +137,17 @@
   color: var(--color-level-warning);
 }
 
+.dnd5e2.simple-nutrition-consume label.simple-nutrition-consume__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: normal;
+}
+
+.dnd5e2.simple-nutrition-consume label.simple-nutrition-consume__item .title {
+  font-size: var(--font-size-12);
+}
+
 .dnd5e2.simple-nutrition-consume input[type="number"] {
   flex: 0 0 4.5rem;
   text-align: center;

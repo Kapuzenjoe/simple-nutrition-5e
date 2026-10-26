@@ -7,13 +7,13 @@ import {
   EMPTY_NUTRITION_CONFIG,
   EMPTY_NUTRITION_STATE,
   LITERS_PER_GALLON,
-  MAGICAL_BERRIES_IDENTIFIER,
   MODULE_ID,
   NUTRITION_FLAG,
   SAVE_DC_LEGACY,
   SAVE_DC_MODERN,
   SETTING_KEYS,
-  WATER_GALLONS_PER_POUND
+  WATER_GALLONS_PER_POUND,
+  WATERSKIN_IDENTIFIER
 } from "../config.mjs";
 
 /**
@@ -58,50 +58,81 @@ export function getGallonAbbreviation() {
 /* -------------------------------------------- */
 
 /**
- * Get the nutrition amount provided by one item.
+ * Get the nutrition amount provided by one use of an item.
  *
  * @param {Actor5e} actor The owning actor.
  * @param {NutritionType} type The nutrition type.
  * @param {Item5e} item The item being consumed.
- * @returns {number} The nutrition amount provided by one item.
+ * @param {Activity} [activity] The activity used, by default the first consuming activity of the item.
+ * @returns {number} The nutrition amount provided by one use of the item.
  */
-export function getNutritionAmount(actor, type, item) {
-  if ( type !== "food" ) {
-    const weight = game.dnd5e.utils.convertWeight(item.system.weight.value, item.system.weight.units, "lb");
-    return weight * WATER_GALLONS_PER_POUND;
-  }
-  if ( item.system.identifier === MAGICAL_BERRIES_IDENTIFIER ) return getNutritionNeeds(actor).food;
-  return game.dnd5e.utils.convertWeight(item.system.weight.value, item.system.weight.units, "lb");
+export function getNutritionAmount(actor, type, item, activity=getConsumeActivities(item)[0]) {
+  const weight = getNutritionWeight(actor, item, activity);
+  if ( !weight ) return getNutritionNeeds(actor)[type];
+  return weight * ((type === "food") ? 1 : WATER_GALLONS_PER_POUND);
 }
 
 /* -------------------------------------------- */
 
 /**
- * Get the first usable activity that consumes the item itself, if nutrition can be recorded for its use.
+ * Get the weight in pounds that one use of an item provides nutrition from. It is the weight of the item itself,
+ * or of the other item whose quantity the activity spends, divided by the maximum uses of the item.
+ * The unmodified legacy Waterskin does not count the one pound of its skin.
+ *
+ * @param {Actor5e} actor The owning actor.
+ * @param {Item5e} item The item being consumed.
+ * @param {Activity|undefined} activity The activity used, if any.
+ * @returns {number} The weight in pounds provided by one use.
+ */
+function getNutritionWeight(actor, item, activity) {
+  const target = getConsumeTarget(activity);
+  const { value, units } = (getMaterialItem(actor, item, target) ?? item).system.weight;
+  const weight = game.dnd5e.utils.convertWeight(value, units, "lb");
+  const max = (target?.type === "itemUses") ? (item.system.uses.max || 1) : 1;
+  const legacy = (item.system.identifier === WATERSKIN_IDENTIFIER) && (item.system.source.rules === "2014");
+  const skin = (legacy && (weight === max + 1)) ? 1 : 0;
+  return (weight - skin) / max;
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the usable activities of a food item that consume a resource, if nutrition can be recorded for their use.
  *
  * @param {Item5e} item The item being consumed.
- * @returns {Activity|null} The activity that consumes the item, or null if there is none.
+ * @returns {Activity[]} The activities with a consumption target.
  */
-export function getConsumeActivity(item) {
-  if ( game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_ACTIVITY_NUTRITION) ) return null;
-  if ( (item.actor?.type !== "character") || (item.system.type.value !== "food") ) return null;
-  return item.system.activities.find(activity => {
-    return activity.canUse && activity.consumption.targets.some(target => consumesItem(item, target));
-  }) ?? null;
+export function getConsumeActivities(item) {
+  if ( game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_ACTIVITY_NUTRITION) ) return [];
+  if ( (item.actor?.type !== "character") || (item.system.type.value !== "food") ) return [];
+  return item.system.activities.filter(activity => activity.canUse && activity.consumption.targets.length);
 }
 
 /* -------------------------------------------- */
 
 /**
- * Check whether a consumption target spends the item that owns the activity.
+ * Get the first consumption target of an activity that spends uses or quantity.
  *
- * @param {Item5e} item The item owning the activity.
- * @param {ConsumptionTargetData} target The consumption target to inspect.
- * @returns {boolean} True if the target spends the uses or quantity of the item itself.
+ * @param {Activity|null} activity The activity to inspect.
+ * @returns {ConsumptionTargetData|undefined} The consumption target, if there is one.
  */
-function consumesItem(item, target) {
-  if ( target.type === "itemUses" ) return !target.target || (target.target === item.id);
-  return (target.type === "material") && (target.target === item.id);
+function getConsumeTarget(activity) {
+  return activity?.consumption.targets.find(target => ["itemUses", "material"].includes(target.type));
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Get the other item whose quantity a consumption target spends.
+ *
+ * @param {Actor5e} actor The owning actor.
+ * @param {Item5e} item The item being consumed.
+ * @param {ConsumptionTargetData|undefined} target The consumption target to inspect.
+ * @returns {Item5e|null} The spent item, or null if the target spends no other item.
+ */
+function getMaterialItem(actor, item, target) {
+  const material = (target?.type === "material") ? actor.items.get(target.target) : null;
+  return (material && (material.id !== item.id) && material.system.weight) ? material : null;
 }
 
 /* -------------------------------------------- */
@@ -115,7 +146,7 @@ function consumesItem(item, target) {
  * @returns {string|null} A localized amount hint for one item.
  */
 function getNutritionAmountLabel(actor, type, item) {
-  if ( (type === "food") && (item.system.identifier === MAGICAL_BERRIES_IDENTIFIER) ) {
+  if ( !getNutritionWeight(actor, item, getConsumeActivities(item)[0]) ) {
     return _loc("SIMPLE_NUTRITION.Dialog.AmountFullDay");
   }
   return formatNutritionAmount(type, getNutritionAmount(actor, type, item));
@@ -132,15 +163,25 @@ function getNutritionAmountLabel(actor, type, item) {
  * @returns {NutritionCandidate} The constructed nutrition candidate.
  */
 export function getNutritionCandidate(actor, type, item) {
+  const [activity] = getConsumeActivities(item);
+  const target = getConsumeTarget(activity);
+  const material = getMaterialItem(actor, item, target);
+  const used = actor.items.get(target?.target) ?? item;
+  const uses = (target?.type === "itemUses") ? used.system.uses : null;
+  let units = item.system.quantity;
+  if ( material ) units = material.system.quantity;
+  else if ( uses ) units = uses.autoDestroy ? Math.max(0, (uses.max * used.system.quantity) - uses.spent) : uses.value;
   return {
     id: item.id,
     name: item.name,
     img: item.img,
-    quantity: item.system.quantity,
+    units,
     container: item.container?.name ?? null,
+    consumes: material ? { name: material.name, container: material.container?.name ?? null } : null,
     amount: getNutritionAmountLabel(actor, type, item),
     value: getNutritionAmount(actor, type, item),
-    noActivity: !game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_ACTIVITY_NUTRITION) && !getConsumeActivity(item)
+    noActivity: !game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_ACTIVITY_NUTRITION) && !activity,
+    noUses: !!uses && !uses.value
   };
 }
 
