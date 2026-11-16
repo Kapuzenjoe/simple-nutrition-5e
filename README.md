@@ -1,8 +1,8 @@
 <img src="docs/banner.png" alt="Simple Nutrition 5e — Daily Food & Water · Consume Dialog · Rest & Calendar Integration · Dehydration & Malnutrition" width="100%">
 
 ![Static Badge](https://img.shields.io/badge/Foundry-v14-informational)
-![Static Badge](https://img.shields.io/badge/Dnd5e-v5.3-informational)
 ![Static Badge](https://img.shields.io/badge/Dnd5e-v6.0-informational)
+![Static Badge](https://img.shields.io/badge/Dnd5e-v6.1-informational)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/peterlankton86911)
 
@@ -77,7 +77,9 @@ Click Food or Water on the tracker to open the Consume Food or Drink Water dialo
 - **Required and Selected.** The dialog shows the day's requirement and the amount picked so far. For food,
   it also shows the Days without food counter once it is above 0.
 - **Items.** The character's food consumables are listed with an Available count and a stepper each. Rations and
-  magical berries only appear under Food, water items and the Waterskin only under Water. Food counts by the
+  magical berries only appear under Food, water items and the Waterskin only under Water. On dnd5e 6.1 and
+  later, all other food items appear under Food with the Nutritious property and under Water with the
+  Hydrating property. Food counts by the
   item's weight. Water counts by weight too, with one pound as one pint. Water pints count anywhere in the
   inventory, and the container of an item is shown under its name. If the item's activity spends the quantity
   of another item, that item is shown there too and its weight counts instead. If it spends the uses of
@@ -116,7 +118,8 @@ Using a food item can record its nutrition without opening the Consume dialog.
 
 - **Counts As.** The usage dialog of a Food consumable gains a Nutrition group with a Counts As choice: Food,
   Water, Food and Water, or None. Rations and magical berries are preselected as Food, water items as Water,
-  and everything else as None.
+  and everything else as None. On dnd5e 6.1 and later, other items are preselected by their Nutritious and
+  Hydrating properties instead.
 - **Recording.** After the usage, the item adds to today's total just like in the Consume dialog, capped at
   the day's requirement. The choice only appears when the usage consumes a resource.
 - **Tracking.** Only the types tracked for the character are offered. The group stays hidden when neither
@@ -166,6 +169,10 @@ Nutrition is checked once per day. When that happens depends on the Calendar Mod
 - **Characters.** The primary party's characters are checked when a primary party is set, otherwise every
   character is.
 - **Time jumps.** Jumping across several midnights at once counts as one day.
+- **Automation off.** With Disable Nutrition Automation, nothing is checked automatically. The rest card, or a
+  chat message in calendar mode, shows a pending summary with an Apply Nutrition button for the GM. The click
+  checks the day and the saving throw follows. A card left unclicked skips that day, and food and water
+  recorded until then still count.
 
 ### 2024 Rules
 
@@ -185,15 +192,16 @@ Nutrition is checked once per day. When that happens depends on the Calendar Mod
   character is already exhausted. Drinking at least half but not all calls for a Constitution saving throw,
   and a failed save deals the same 1 or 2 levels.
 - **Recovery.** Exhaustion that a shortfall caused cannot be removed by a long rest until both food and water
-  have been met in full for a day. This holds in calendar mode as well.
+  have been met in full for a day. This holds in calendar mode and with the automation off as well.
 
 ### Saving Throws & Summary
 
-- **Saving throw.** A chat card with a Constitution saving throw button and an Apply Exhaustion button goes to
-  the character's owners. The roll button shows the pass or fail result, and it always rolls for the
-  character the request is for.
-- **Apply Exhaustion.** After a failed save, applies the Exhaustion levels and, under the 2024 rules, the
-  Malnutrition condition. Under the Legacy rules it also blocks Exhaustion recovery.
+- **Saving throw.** A chat card with a Constitution saving throw button goes to the character's owners, and it
+  always rolls for the character the request is for. With dnd5e's Summary Chat Cards setting on, the result
+  appears on the card instead of as its own chat message.
+- **Apply Exhaustion.** After a failed save, a button below it applies the Exhaustion levels and, under the
+  2024 rules, the Malnutrition condition. Under the Legacy rules it also blocks Exhaustion recovery. A later
+  passed roll hides the button again.
 - **Summary.** Lists the missed requirements, Days without food, Exhaustion +N, and the conditions. It sits
   on the rest card in long rest mode and is its own chat message in calendar mode. It is skipped when both
   requirements are met.
@@ -227,12 +235,14 @@ Nutrition is checked once per day. When that happens depends on the Calendar Mod
 
 ## Settings
 
-Three world settings are available in the module settings.
+Four world settings are available in the module settings.
 
 - **Calendar Mode.** Chooses whether nutrition is checked once per calendar midnight or on a long rest that
   starts a new day. Default (Auto-Detect) treats Calendaria, Ember, or dnd5e's Daily Recovery Mode set to
-  Calendar Recovery, which needs dnd5e 6.0 or later, as a calendar source. It switches to calendar mode as
-  soon as one is present. Set it to Always On or Always Off to decide by hand.
+  Calendar Recovery, as a calendar source. It switches to calendar mode as soon as one is present. Set it to
+  Always On or Always Off to decide by hand.
+- **Disable Nutrition Automation.** Shows a pending summary with an Apply Nutrition button for the GM on a long
+  rest or at midnight instead of checking nutrition, see [Day Check](#day-check). It is off by default.
 - **Disable Group Sheet Integration.** Hides the nutrition tracker on the member entries of the Group sheet and
   the free food and water button in its header. It is off by default.
 - **Disable Activity Dialog Integration.** Hides the Nutrition choice in the usage dialog of food items. The

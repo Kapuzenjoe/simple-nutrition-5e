@@ -8,33 +8,71 @@ import {
   EXHAUSTION_PATH,
   MODULE_ID
 } from "../config.mjs";
-import { setNutritionState } from "../nutrition/actor.mjs";
+import { getNutritionConfig, setNutritionState } from "../nutrition/actor.mjs";
 
 /**
- * Attach the failed-save button handler on a nutrition save chat message.
+ * Render the saving throw summaries and the failed-save button on a nutrition save chat message.
+ *
+ * @param {ChatMessage5e} message The rendered chat message.
+ * @param {HTMLElement} html The rendered message HTML.
+ * @returns {Promise<void>} A promise that resolves when the message has been rendered.
+ */
+export async function onRenderNutritionSaveMessage(message, html) {
+  const flag = message.getFlag(MODULE_ID, "nutritionSave");
+  if ( !flag || (message.type !== "prompt") ) return;
+
+  const card = html.querySelector(".request-card");
+  if ( !card || (card.dataset.nutritionRendered !== undefined) ) return;
+  card.dataset.nutritionRendered = "";
+
+  const rolls = message.getAssociatedRolls("save").filter(roll => roll.visible);
+  if ( game.settings.get("dnd5e", "chatCardSummary") ) {
+    const summaries = await Promise.all(rolls.map(renderSaveSummary));
+    card.append(...summaries);
+    rolls.forEach((roll, i) => roll.system._onRender(summaries[i], { summary: true }));
+  }
+
+  const latest = rolls.at(-1);
+  if ( flag.applied || !latest || (latest.shouldDisplayChallenge && !latest.rolls[0]?.isFailure) ) return;
+  card.insertAdjacentHTML(
+    "beforeend", renderApplyTray("applyNutritionFailure", _loc("SIMPLE_NUTRITION.Rest.ApplyExhaustion"))
+  );
+  const applyButton = card.querySelector("[data-action='applyNutritionFailure']");
+  applyButton.addEventListener("click", () => onApplyNutritionFailure(message, flag, applyButton));
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Hide a saving throw result that is shown as a summary on its nutrition save card, like the system does for
+ * its own cards when Summary Chat Cards is on.
  *
  * @param {ChatMessage5e} message The rendered chat message.
  * @param {HTMLElement} html The rendered message HTML.
  * @returns {void}
  */
-export function onRenderNutritionSaveMessage(message, html) {
-  const flag = message.getFlag(MODULE_ID, "nutritionSave");
-  if ( !flag ) return;
+export function onRenderNutritionSaveResult(message, html) {
+  if ( message.type !== "save" ) return;
+  const origin = message.system.origin;
+  if ( !origin?.getFlag(MODULE_ID, "nutritionSave") || !origin.visible ) return;
+  if ( game.settings.get("dnd5e", "chatCardSummary") ) html.hidden = true;
+}
 
-  html.classList.add("compact");
-  if ( message.shouldDisplayChallenge ) html.dataset.displayChallenge = "";
+/* -------------------------------------------- */
 
-  const rollButton = html.querySelector("[data-action='rollNutritionSave']");
-  if ( rollButton ) {
-    if ( flag.success !== undefined ) markRollResult(rollButton, flag.success);
-    rollButton.addEventListener("click", () => onRollNutritionSave(message, flag, rollButton));
-  }
-
-  const applyButton = html.querySelector("[data-action='applyNutritionFailure']");
-  if ( applyButton ) {
-    if ( flag.applied ) applyButton.disabled = true;
-    else applyButton.addEventListener("click", () => onApplyNutritionFailure(message, flag, applyButton));
-  }
+/**
+ * Render a saving throw result as a summary item of a chat card.
+ *
+ * @param {ChatMessage5e} roll The saving throw message.
+ * @returns {Promise<HTMLElement>} A promise that resolves to the summary element.
+ */
+async function renderSaveSummary(roll) {
+  const summary = document.createElement("div");
+  summary.className = "card-summary";
+  summary.dataset.messageId = roll.id;
+  summary.dataset.targetUuid = roll.getAssociatedToken()?.uuid ?? "";
+  summary.innerHTML = await roll.system.render({ summary: true });
+  return summary;
 }
 
 /* -------------------------------------------- */
@@ -99,6 +137,27 @@ export async function postNutritionSummary(actor, chat) {
 /* -------------------------------------------- */
 
 /**
+ * Create a chat message asking a GM to apply the nutrition of a new day.
+ *
+ * @param {Actor5e} actor The actor the new day applies to.
+ * @param {number} exhaustionBefore The actor's Exhaustion level before the new day, for legacy water doubling.
+ * @returns {Promise<ChatMessage5e|null>} A promise that resolves to the message, or null if nothing is tracked.
+ */
+export async function promptNutritionApply(actor, exhaustionBefore) {
+  const { trackFood, trackWater } = getNutritionConfig(actor);
+  if ( (trackFood === false) && (trackWater === false) ) return null;
+
+  return ChatMessage.implementation.create({
+    content: "<div class='chat-card rest-card'></div>",
+    whisper: game.users.filter(user => actor.testUserPermission(user, "OWNER")),
+    speaker: ChatMessage.implementation.getSpeaker({ actor }),
+    flags: { [MODULE_ID]: { nutritionApply: { actorUuid: actor.uuid, exhaustionBefore, applied: false } } }
+  });
+}
+
+/* -------------------------------------------- */
+
+/**
  * Create a chat message prompting a nutrition saving throw.
  *
  * @param {Actor5e} actor The actor that must roll the save.
@@ -107,32 +166,11 @@ export async function postNutritionSummary(actor, chat) {
  * @param {number} exhaustionBefore The actor's Exhaustion level before today's own changes, for legacy water doubling.
  * @returns {Promise<ChatMessage5e>} A promise that resolves to the created chat message.
  */
-export async function promptNutritionSave(actor, type, dc, exhaustionBefore) {
-  const { createRollLabel } = game.dnd5e.enrichers;
-  const config = { type: "save", ability: "con", dc, format: "short", icon: true };
-  const guidance = await foundry.applications.ux.TextEditor.enrichHTML(
-    _loc(type === "food"
-      ? "SIMPLE_NUTRITION.Rest.FoodSaveHint"
-      : "SIMPLE_NUTRITION.Rest.WaterSaveHint")
-  );
-  const applyLabel = `<i class="fa-solid fa-heart-circle-exclamation"></i> ${_loc("SIMPLE_NUTRITION.Rest.ApplyExhaustion")}`;
-  const request = await foundry.applications.handlebars.renderTemplate(
-    "modules/simple-nutrition-5e/templates/save-request.hbs",
-    {
-      buttons: [
-        {
-          dataset: { action: "rollNutritionSave", dc },
-          buttonLabel: createRollLabel(config),
-          hiddenLabel: createRollLabel({ ...config, hideDC: true })
-        },
-        { dataset: { action: "applyNutritionFailure" }, buttonLabel: applyLabel, hiddenLabel: applyLabel }
-      ]
-    }
-  );
-
+export function promptNutritionSave(actor, type, dc, exhaustionBefore) {
   const owners = game.users.filter(user => actor.testUserPermission(user, "OWNER"));
   return ChatMessage.implementation.create({
-    content: `<div class="card-content">${guidance}</div>${request}`,
+    type: "prompt",
+    system: { broadcast: false, buttons: [{ type: "save", ability: "con", dc, format: "short" }] },
     whisper: owners,
     author: game.user.isGM ? owners.find(user => !user.isGM)?.id : game.user.id,
     speaker: ChatMessage.implementation.getSpeaker({ actor }),
@@ -143,19 +181,18 @@ export async function promptNutritionSave(actor, type, dc, exhaustionBefore) {
 /* -------------------------------------------- */
 
 /**
- * Mark the roll button with a pass/fail icon and color, matching the system's save-result styling.
+ * Render the system-styled apply tray of a chat card.
  *
- * @param {HTMLElement} button The roll button.
- * @param {boolean} success Whether the save succeeded.
- * @returns {void}
+ * @param {string} action The data-action of the button.
+ * @param {string} label The localized button label.
+ * @returns {string} The tray HTML.
  */
-function markRollResult(button, success) {
-  button.classList.toggle("success", success);
-  button.classList.toggle("failure", !success);
-  button.querySelector(".result-icon")?.remove();
-  const icon = document.createElement("i");
-  icon.className = `fa-solid result-icon ${success ? "fa-check" : "fa-xmark"}`;
-  button.prepend(icon);
+export function renderApplyTray(action, label) {
+  return "<div class='card-tray'><div class='collapsible-content'><div class='wrapper'>"
+    + `<button type='button' class='apply-button' data-action='${action}'>`
+    + "<i class='fa-light fa-reply-all fa-flip-horizontal' inert></i>"
+    + `<span>${label}</span>`
+    + "</button></div></div></div>";
 }
 
 /* -------------------------------------------- */
@@ -184,40 +221,15 @@ async function onApplyNutritionFailure(message, flag, button) {
 /* -------------------------------------------- */
 
 /**
- * Roll the nutrition saving throw for the actor bound to the message and record the result.
- * Targets the actor explicitly instead of relying on token selection, unlike the system's generic
- * roll-request dispatch (`dnd5e.enrichers.handleRoll`).
- *
- * @param {ChatMessage5e} message The originating chat message.
- * @param {{ actorUuid: string, type: NutritionType }} flag The nutrition save flag data.
- * @param {HTMLElement} button The roll button that was clicked.
- * @returns {Promise<void>}
- */
-async function onRollNutritionSave(message, flag, button) {
-  const actor = await fromUuid(flag.actorUuid);
-  if ( !actor?.testUserPermission(game.user, "OWNER") ) return;
-
-  button.disabled = true;
-  try {
-    const rolls = await actor.rollSavingThrow({ ability: "con", target: Number(button.dataset.dc) });
-    if ( !rolls ) return;
-
-    markRollResult(button, rolls[0].isSuccess);
-    await message.setFlag(MODULE_ID, "nutritionSave", { ...flag, success: rolls[0].isSuccess });
-  } finally {
-    button.disabled = false;
-  }
-}
-
-/* -------------------------------------------- */
-
-/**
  * Render the localized nutrition summary rows for a chat message.
  *
  * @param {object} chat The nutrition summary data.
+ * @param {object} [options]
+ * @param {boolean} [options.pending] Whether the rows are a preview of a day that has not been applied yet.
+ * @param {boolean} [options.always] Whether to report a day without shortfalls instead of skipping it.
  * @returns {Promise<string|null>} The rendered HTML, or null if there is nothing to report.
  */
-async function renderNutritionRows(chat) {
+export async function renderNutritionRows(chat, { pending=false, always=false }={}) {
   const statuses = [];
   if ( chat.dehydrated ) statuses.push(_loc(CONFIG.DND5E.conditionTypes[CONDITION_DEHYDRATION].name));
   if ( chat.malnourished ) statuses.push(_loc(CONFIG.DND5E.conditionTypes[CONDITION_MALNUTRITION].name));
@@ -239,6 +251,9 @@ async function renderNutritionRows(chat) {
   if ( chat.penalty > 0 ) rows.push({ label: _loc("SIMPLE_NUTRITION.Chat.ExhaustionLabel"), value: `+${chat.penalty}` });
   if ( statuses.length ) rows.push({ label: _loc("DND5E.Conditions"), value: statuses.join(", ") });
 
+  if ( !rows.length && always ) rows.push({ label: _loc("SIMPLE_NUTRITION.Chat.AllMet"), icon: "fa-check" });
   if ( !rows.length ) return null;
-  return foundry.applications.handlebars.renderTemplate("modules/simple-nutrition-5e/templates/rest-chat.hbs", { rows });
+  return foundry.applications.handlebars.renderTemplate(
+    "modules/simple-nutrition-5e/templates/rest-chat.hbs", { rows, pending }
+  );
 }

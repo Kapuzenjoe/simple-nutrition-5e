@@ -1,5 +1,5 @@
-<section class="deltas simple-nutrition-chat">
-    <strong class="roboto-condensed-upper">{{ localize "SIMPLE_NUTRITION.Chat.Title" }}</strong>
+<section class="deltas simple-nutrition-chat{{#if pending}} pending{{/if}}">
+    <strong class="roboto-condensed-upper">{{ localize "SIMPLE_NUTRITION.Chat.Title" }}{{#if pending}} ({{ localize "SIMPLE_NUTRITION.Chat.Pending" }}){{/if}}</strong>
     <ul class="unlist">
         {{#each rows}}
         <li class="delta operation-update">

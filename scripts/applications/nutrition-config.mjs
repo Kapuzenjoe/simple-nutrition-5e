@@ -63,7 +63,7 @@ export default class NutritionConfig extends BaseConfigSheet {
     const config = getNutritionConfig(this.document);
     const weightUnit = defaultUnits("weight");
     const metricVolume = game.settings.get("dnd5e", "metricVolumeUnits");
-    const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+    const legacy = game.settings.get("dnd5e", "rulesVersion") === "legacy";
     const defaults = {
       food: BASE_NEEDS[size] ?? BASE_NEEDS.med,
       water: BASE_NEEDS[size] ?? BASE_NEEDS.med,
@@ -79,7 +79,9 @@ export default class NutritionConfig extends BaseConfigSheet {
       trackWater: config.trackWater !== false,
       foodPerDay: (config.foodPerDay === null)
         ? null
-        : convertWeight(config.foodPerDay, "lb", weightUnit).toNearest(0.001),
+        : (foundry.utils.isNewerVersion("6.1", game.system.version)
+          ? convertWeight(config.foodPerDay, "lb", weightUnit)
+          : convertWeight(config.foodPerDay, "lb", { to: weightUnit, legacy: false }).value).toNearest(0.001),
       waterPerDay: (config.waterPerDay === null)
         ? null
         : (metricVolume ? (config.waterPerDay * LITERS_PER_GALLON).toNearest(0.001) : config.waterPerDay),
@@ -119,9 +121,7 @@ export default class NutritionConfig extends BaseConfigSheet {
       })
     };
     context.placeholders = {
-      foodPerDay: convertWeight(defaults.food, "lb", weightUnit).toLocaleString(game.i18n.lang, {
-        maximumFractionDigits: 3
-      }),
+      foodPerDay: formatNutritionAmount("food", defaults.food, { withUnit: false }),
       waterPerDay: (metricVolume ? (defaults.water * LITERS_PER_GALLON) : defaults.water).toLocaleString(
         game.i18n.lang,
         { maximumFractionDigits: 3 }
@@ -161,7 +161,9 @@ export default class NutritionConfig extends BaseConfigSheet {
     foundry.utils.setProperty(submitData, `flags.${MODULE_ID}.${NUTRITION_FLAG}.config`, {
       trackFood: config.trackFood !== false,
       trackWater: config.trackWater !== false,
-      foodPerDay: (foodPerDay === null) ? null : convertWeight(foodPerDay, weightUnit, "lb"),
+      foodPerDay: (foodPerDay === null) ? null : (foundry.utils.isNewerVersion("6.1", game.system.version)
+        ? convertWeight(foodPerDay, weightUnit, "lb")
+        : convertWeight(foodPerDay, weightUnit, { to: "lb", legacy: false }).value),
       waterPerDay: (waterPerDay === null)
         ? null
         : (metricVolume ? (waterPerDay / LITERS_PER_GALLON) : waterPerDay),

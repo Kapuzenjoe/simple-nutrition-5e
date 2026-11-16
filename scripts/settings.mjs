@@ -21,6 +21,14 @@ const SETTINGS = [
   },
   {
     config: true,
+    name: "SIMPLE_NUTRITION.Settings.DisableAutomation.Name",
+    hint: "SIMPLE_NUTRITION.Settings.DisableAutomation.Hint",
+    key: SETTING_KEYS.DISABLE_AUTOMATION,
+    scope: "world",
+    type: new BooleanField({ initial: false })
+  },
+  {
+    config: true,
     name: "SIMPLE_NUTRITION.Settings.DisableGroupSheet.Name",
     hint: "SIMPLE_NUTRITION.Settings.DisableGroupSheet.Hint",
     key: SETTING_KEYS.DISABLE_GROUP_SHEET,

@@ -195,19 +195,10 @@
   text-shadow: none;
 }
 
-.message.compact:has(.simple-nutrition-save) .message-sender .avatar,
 .message.compact:has(.simple-nutrition-chat) .message-sender .avatar {
   display: none;
 }
 
-.simple-nutrition-save button.success {
-  color: var(--dnd5e-color-success);
-  background-color: var(--dnd5e-color-success-background);
-  border-color: var(--dnd5e-color-success);
-}
-
-.simple-nutrition-save button.failure {
-  color: var(--dnd5e-color-failure);
-  background-color: var(--dnd5e-color-failure-background);
-  border-color: var(--dnd5e-color-failure);
+.simple-nutrition-chat.pending ul {
+  opacity: 0.7;
 }

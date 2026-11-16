@@ -242,11 +242,18 @@ function getAvailableChoices(actor) {
 /**
  * Get the choice that is preselected for an item.
  * @param {Item5e} item                Food item being used.
- * @returns {ActivityNutritionChoice}  Food for rations and magical berries, water for water items, otherwise none.
+ * @returns {ActivityNutritionChoice}  Food for rations and magical berries, water for water items and, when the
+ *                                     system provides them, the choice matching the item's Nutritious and Hydrating
+ *                                     properties, otherwise none.
  */
 function getDefaultChoice(item) {
-  const identifier = item.system.identifier;
+  const { identifier, properties } = item.system;
   if ( (identifier === RATIONS_IDENTIFIER) || (identifier === MAGICAL_BERRIES_IDENTIFIER) ) return "food";
   if ( WATER_IDENTIFIERS.has(identifier) ) return "water";
-  return "none";
+  if ( !CONFIG.DND5E.validProperties.consumable.food ) return "none";
+  const food = properties.has("nutritious");
+  const water = properties.has("hydrating");
+  if ( food && water ) return "both";
+  if ( food ) return "food";
+  return water ? "water" : "none";
 }

@@ -17,9 +17,7 @@ export function isCalendarModeActive() {
  * @returns {boolean}
  */
 function isManualRecoveryActive() {
-  if ( !game.settings.settings.has("dnd5e.calendarConfig") ) return true;
   const cfg = game.settings.get("dnd5e", "calendarConfig");
-  if ( !("dailyRecovery" in cfg) ) return true;
   return !cfg.enabled || cfg.manualRecovery;
 }
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 1.3.0
+
+- Changed the minimum required dnd5e version to 6.0.0.
+- Changed the Counts As choice of food items to be preselected by their Nutritious and Hydrating properties on dnd5e 6.1 and later.
+- Changed food items to be listed under Food or Water by their Nutritious and Hydrating properties on dnd5e 6.1 and later.
+- Added a "Disable Nutrition Automation" setting to preview the day's nutrition on a chat card and apply it with a GM button instead of automatically.
+- Changed the saving throw request to the system's roll request card, with the Apply Exhaustion button in the style of the effects tray, and removed its hint text and pass/fail icon.
+- Changed the saving throw result to show on the request card when dnd5e's Summary Chat Cards setting is on.
+- Changed the Apply Exhaustion button to only show while the latest saving throw has failed.
+
 ## Version 1.2.0
 
 - Fixed water items counting as a single pint regardless of their weight (#5).

@@ -11,6 +11,7 @@ import {
   CONDITION_MALNUTRITION,
   EXHAUSTION_PATH,
   MODULE_ID,
+  SETTING_KEYS,
   STARVATION_FORMULA_LEGACY,
   STARVATION_LIMIT
 } from "../config.mjs";
@@ -31,7 +32,7 @@ import { isCalendarModeActive } from "../utils.mjs";
  * @returns {Promise<void>} A promise that resolves when the actor has been updated.
  */
 export async function applyNutrition(actor, state) {
-  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+  const legacy = game.settings.get("dnd5e", "rulesVersion") === "legacy";
   const { trackFood, trackWater } = getNutritionConfig(actor);
   await setNutritionState(actor, {
     food: 0,
@@ -68,13 +69,14 @@ function isExhaustionRecoveryBlocked(actor, state) {
  * Compute the nutrition state transition for a new day, without applying any changes.
  *
  * @param {Actor5e} actor The actor to evaluate.
+ * @param {number} [exhaustionBefore] The Exhaustion level before the new day, by default the actor's current level.
  * @returns {NutritionComputation} The computed nutrition state and the stored values it was derived from.
  */
-export function computeNutrition(actor) {
+export function computeNutrition(actor, exhaustionBefore=actor.system.attributes.exhaustion ?? 0) {
   const { config: nutritionConfig, ...previous } = getNutritionFlag(actor);
   const trackFood = nutritionConfig.trackFood !== false;
   const trackWater = nutritionConfig.trackWater !== false;
-  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+  const legacy = game.settings.get("dnd5e", "rulesVersion") === "legacy";
   const starvationLimit = Math.max(1, game.dnd5e.utils.simplifyBonus(
     nutritionConfig.starvationLimit ?? (legacy ? STARVATION_FORMULA_LEGACY : STARVATION_LIMIT),
     actor.getRollData()
@@ -94,7 +96,6 @@ export function computeNutrition(actor) {
 
   // Water
   const waterLow = trackWater && !waterHalf;
-  const exhaustionBefore = actor.system.attributes.exhaustion ?? 0;
   const waterDoubled = legacy && waterLow && (exhaustionBefore >= 1);
   const dehydrated = !legacy
     && (waterLow || (trackWater && actor.hasConditionEffect(CONDITION_EFFECT_DEHYDRATED) && !waterFull));
@@ -123,6 +124,27 @@ export function computeNutrition(actor) {
 /* -------------------------------------------- */
 
 /**
+ * Build the nutrition chat data of a computed day.
+ *
+ * @param {NutritionComputation} computation The computed nutrition state.
+ * @returns {object} The data for the nutrition rows of a chat message.
+ */
+export function getNutritionChat({ trackFood, trackWater, previous, state }) {
+  return {
+    food: previous.food,
+    water: previous.water,
+    trackFood,
+    trackWater,
+    starvation: state.starvation,
+    dehydrated: state.dehydrated,
+    malnourished: state.malnourished,
+    penalty: state.penalty
+  };
+}
+
+/* -------------------------------------------- */
+
+/**
  * Apply nutrition penalties during rest completion before the system updates the actor.
  *
  * @param {Actor5e} actor The actor completing the rest.
@@ -133,12 +155,14 @@ export function computeNutrition(actor) {
 export function onPreRestCompleted(actor, result, config) {
   if ( (actor.type !== "character") || !config.newDay ) return;
 
-  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+  const legacy = game.settings.get("dnd5e", "rulesVersion") === "legacy";
   const calendarMode = isCalendarModeActive();
+  const disabled = game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_AUTOMATION);
 
-  // Under calendar-driven recovery, modern conditions already block system recovery; legacy has no
-  // condition to key off, so the day-change block (`exhaustionRecoveryBlocked`) is reapplied here.
-  if ( calendarMode ) {
+  // Under calendar-driven recovery or with the automation disabled, modern conditions already block system
+  // recovery; legacy has no condition to key off, so the day-change block (`exhaustionRecoveryBlocked`) is
+  // reapplied here.
+  if ( calendarMode || disabled ) {
     if ( !legacy ) return;
     const { exhaustionRecoveryBlocked } = getNutritionFlag(actor);
     if ( !exhaustionRecoveryBlocked ) return;
@@ -182,25 +206,27 @@ export function onPreRestCompleted(actor, result, config) {
 export async function onRestCompleted(actor, result, config) {
   if ( (actor.type !== "character") || !config.newDay || isCalendarModeActive() ) return;
 
-  const state = result[MODULE_ID];
-  if ( !state ) return;
   const { config: nutritionConfig, ...previous } = getNutritionFlag(actor);
   const trackFood = nutritionConfig.trackFood !== false;
   const trackWater = nutritionConfig.trackWater !== false;
 
+  if ( game.settings.get(MODULE_ID, SETTING_KEYS.DISABLE_AUTOMATION) ) {
+    if ( result.message && (trackFood || trackWater) ) {
+      await result.message.setFlag(MODULE_ID, "nutritionApply", {
+        actorUuid: actor.uuid,
+        exhaustionBefore: result.clone.system.attributes.exhaustion ?? 0,
+        applied: false
+      });
+    }
+    return;
+  }
+
+  const state = result[MODULE_ID];
+  if ( !state ) return;
   await applyNutrition(actor, state);
 
   if ( result.message && (trackFood || trackWater) ) {
-    await result.message.setFlag(MODULE_ID, "nutritionChat", {
-      food: previous.food,
-      water: previous.water,
-      trackFood,
-      trackWater,
-      starvation: state.starvation,
-      dehydrated: state.dehydrated,
-      malnourished: state.malnourished,
-      penalty: state.penalty
-    });
+    await result.message.setFlag(MODULE_ID, "nutritionChat", getNutritionChat({ trackFood, trackWater, previous, state }));
   }
 
   const dc = getNutritionSaveDC(actor, nutritionConfig);
