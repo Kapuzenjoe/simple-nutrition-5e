@@ -97,7 +97,7 @@ export function onActivityConsumption(activity, usageConfig, messageConfig, upda
     const update = updates.item[index];
     const item = activity.actor.items.get(update._id);
     const { quantity, uses } = item.system;
-    if ( uses.autoDestroy && uses.max && ("system.uses.spent" in update) ) {
+    if ( uses?.autoDestroy && uses.max && ("system.uses.spent" in update) ) {
       const used = ((quantity - (update["system.quantity"] ?? quantity)) * uses.max)
         + (update["system.uses.spent"] - uses.spent);
       const total = uses.spent + (used * (extra + 1));

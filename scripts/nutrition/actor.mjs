@@ -90,7 +90,7 @@ export function getNutritionAmount(actor, type, item, activity=getConsumeActivit
 function getNutritionWeight(actor, item, activity) {
   const target = getConsumeTarget(activity);
   const spent = (target?.type === "itemUses") ? actor.items.get(target.target) : getMaterialItem(actor, item, target);
-  const source = spent?.system.weight ? spent : item;
+  const source = spent?.system.weight?.value ? spent : item;
   const { value, units } = source.system.weight;
   const { convertWeight } = game.dnd5e.utils;
   const weight = foundry.utils.isNewerVersion("6.1", game.system.version)

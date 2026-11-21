@@ -9,6 +9,7 @@
 - Changed the saving throw request to the system's roll request card, with the Apply Exhaustion button in the style of the effects tray, and removed its hint text and pass/fail icon.
 - Changed the saving throw result to show on the request card when dnd5e's Summary Chat Cards setting is on.
 - Changed the Apply Exhaustion button to only show while the latest saving throw has failed.
+- Fixed the Food and Water buttons consuming and counting only one unit when several were picked for an item that uses up a loot item.
 
 ## Version 1.2.0
 
