@@ -40,6 +40,7 @@ export const EMPTY_NUTRITION_CONFIG = {
 
 export const SETTING_KEYS = {
   CALENDAR_MODE: "calendarMode",
+  DISABLE_AUTOMATION: "disableAutomation",
   DISABLE_GROUP_SHEET: "disableGroupSheet",
   DISABLE_ACTIVITY_NUTRITION: "disableActivityNutrition"
 };

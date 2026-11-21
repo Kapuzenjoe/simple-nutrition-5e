@@ -192,20 +192,26 @@ async function useConsumeActivities(nutrition, entries) {
 
 /**
  * Get all valid items on an actor for a nutrition type. Rations and magical berries are only listed as food, water
- * items and the Waterskin only as water.
+ * items and the Waterskin only as water. Any other food item is listed by its Nutritious (food) or Hydrating (water)
+ * property when the system provides them, and otherwise under both.
  *
  * @param {Actor5e} actor The actor to inspect.
  * @param {NutritionType} nutrition The nutrition type being consumed.
  * @returns {Item5e[]} The actor's valid items.
  */
 function getCandidates(actor, nutrition) {
-  const excluded = (nutrition === "food")
-    ? [...WATER_IDENTIFIERS, WATERSKIN_IDENTIFIER]
-    : [RATIONS_IDENTIFIER, MAGICAL_BERRIES_IDENTIFIER];
+  const isFood = nutrition === "food";
+  const foodIdentifiers = [RATIONS_IDENTIFIER, MAGICAL_BERRIES_IDENTIFIER];
+  const waterIdentifiers = [...WATER_IDENTIFIERS, WATERSKIN_IDENTIFIER];
+  const [listed, excluded] = isFood ? [foodIdentifiers, waterIdentifiers] : [waterIdentifiers, foodIdentifiers];
+  const property = isFood ? "nutritious" : "hydrating";
+  const byProperty = !!CONFIG.DND5E.validProperties.consumable.food?.has(property);
   return actor.items.filter(item => {
     if ( item.type !== "consumable" ) return false;
     if ( !item.system.quantity ) return false;
     if ( item.system.type.value !== "food" ) return false;
-    return !excluded.includes(item.system.identifier);
+    const { identifier, properties } = item.system;
+    if ( excluded.includes(identifier) ) return false;
+    return !byProperty || listed.includes(identifier) || properties.has(property);
   });
 }

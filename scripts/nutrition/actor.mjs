@@ -27,7 +27,10 @@ import {
 export function formatNutritionAmount(type, value, { withUnit = true }={}) {
   if ( type === "food" ) {
     const unit = game.dnd5e.utils.defaultUnits("weight");
-    const converted = game.dnd5e.utils.convertWeight(value, "lb", unit);
+    const { convertWeight } = game.dnd5e.utils;
+    const converted = foundry.utils.isNewerVersion("6.1", game.system.version)
+      ? convertWeight(value, "lb", unit)
+      : convertWeight(value, "lb", { to: unit, legacy: false }).value;
     return withUnit
       ? game.dnd5e.utils.formatWeight(converted, unit, { maximumFractionDigits: 3, unitDisplay: "short" })
       : converted.toLocaleString(game.i18n.lang, { maximumFractionDigits: 3 });
@@ -87,9 +90,12 @@ export function getNutritionAmount(actor, type, item, activity=getConsumeActivit
 function getNutritionWeight(actor, item, activity) {
   const target = getConsumeTarget(activity);
   const spent = (target?.type === "itemUses") ? actor.items.get(target.target) : getMaterialItem(actor, item, target);
-  const source = spent?.system.weight ? spent : item;
+  const source = spent?.system.weight?.value ? spent : item;
   const { value, units } = source.system.weight;
-  const weight = game.dnd5e.utils.convertWeight(value, units, "lb");
+  const { convertWeight } = game.dnd5e.utils;
+  const weight = foundry.utils.isNewerVersion("6.1", game.system.version)
+    ? convertWeight(value, units, "lb")
+    : convertWeight(value, units, { to: "lb", legacy: false }).value;
   const max = (target?.type === "itemUses") ? (source.system.uses.max || 1) : 1;
   const legacy = (source.system.identifier === WATERSKIN_IDENTIFIER) && (source.system.source.rules === "2014");
   const skin = (legacy && (weight === max + 1)) ? 1 : 0;
@@ -244,7 +250,7 @@ export function getNutritionNeeds(actor) {
  * @returns {number} The saving throw DC.
  */
 export function getNutritionSaveDC(actor, nutritionConfig) {
-  const legacy = game.dnd5e.settings.rulesVersion === "legacy";
+  const legacy = game.settings.get("dnd5e", "rulesVersion") === "legacy";
   return game.dnd5e.utils.simplifyBonus(
     nutritionConfig.malnutritionDC ?? (legacy ? SAVE_DC_LEGACY : SAVE_DC_MODERN),
     actor.getRollData()
